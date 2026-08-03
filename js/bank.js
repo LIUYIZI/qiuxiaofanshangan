@@ -10,6 +10,7 @@
   const Bank = {
     questions: [],      // 全部题目
     loaded: false,
+    error: false,       // 题库加载失败（常见于 file:// 直接打开）
     loadPromise: null,
 
     load() {
@@ -26,8 +27,14 @@
           q.isSubjective = (q.type === 'subjective');
           q.answerKey = q.answer ? String(q.answer).trim().toUpperCase() : '';
         });
+        if (!this.questions.length) this.error = true;
         this.loaded = true;
         return this.questions;
+      }).catch(err => {
+        console.error('题库加载异常:', err);
+        this.error = true;
+        this.loaded = true;
+        return [];
       });
       return this.loadPromise;
     },

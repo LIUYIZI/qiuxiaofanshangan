@@ -61,11 +61,17 @@
       const logs = Store.getLogs();
       const todayDone = logs.some(l => l.date === Store.today());
       const done = Bank.loaded;
+      const userDone = Object.keys(Store.getAnswers()).length + Object.keys(Store.getSubDone()).length;
+      const loadWarn = Bank.error ? `
+        <div class="card" style="background:#fef2f2;border:1px solid #fecaca;margin-bottom:14px;">
+          ⚠️ 题库加载失败：若你是本地双击打开的，请改用本地服务器（python3 -m http.server 8000）或直接访问线上链接。
+        </div>` : '';
       this.el().innerHTML = `
+        ${loadWarn}
         <div class="card hero fade-in">
           <h1>📘 武汉教师D类刷题</h1>
           <p>${CONFIG.site.target}</p>
-          <p style="margin-top:8px;font-size:13px;color:var(--warning);">🎯 已刷题 ${Bank.questions.length} 道 · 连续打卡 ${streak} 天</p>
+          <p style="margin-top:8px;font-size:13px;color:var(--warning);">🎯 已刷 ${userDone} 题 / 题库 ${Bank.questions.length} 题 · 连续打卡 ${streak} 天</p>
           <button class="btn-main" id="btnDaily">${todayDone ? '✅ 今日已完成 · 再来一组' : '🚀 开始今日测验'}</button>
           <button class="btn-sec" id="btnMistakes">📕 错题重刷</button>
         </div>
@@ -297,9 +303,9 @@
         <div class="section-title">待重刷错题（${wrongQs.length}题）</div>
         <div class="card" style="padding:6px 0;">
           ${wrongQs.length ? `<ul class="menu-list">
-            ${wrongQs.slice(0, 30).map(q => `<li data-qid="${q.id}"><div><div class="menu-title" style="font-weight:500;font-size:14px;">${esc(q.stem.slice(0, 40))}…</div><div class="menu-sub">${esc(q.module)} · ${esc(q.tag)} · ${answers[q.id].wrong}次答错</div></div><span class="menu-arrow">›</span></li>`).join('')}
+            ${wrongQs.map(q => `<li data-qid="${q.id}"><div><div class="menu-title" style="font-weight:500;font-size:14px;">${esc(q.stem.slice(0, 40))}…</div><div class="menu-sub">${esc(q.module)} · ${esc(q.tag)} · ${answers[q.id].wrong}次答错</div></div><span class="menu-arrow">›</span></li>`).join('')}
           </ul>
-          <button class="btn-main" id="btnReDo" style="margin:12px;">重刷全部错题</button>` : '<div class="empty"><div class="empty-emoji">🎉</div>暂无待重刷错题</div>'}
+          <button class="btn-main" id="btnReDo" style="margin:12px;">重刷全部错题（${wrongQs.length}题）</button>` : '<div class="empty"><div class="empty-emoji">🎉</div>暂无待重刷错题</div>'}
         </div>
       `;
       const redo = document.getElementById('btnReDo');
@@ -313,10 +319,9 @@
     renderStats() {
       const logs = Store.getLogs();
       const answers = Store.getAnswers();
-      const totalDone = Object.keys(answers).length;
       const totalCorrect = Object.values(answers).reduce((s, r) => s + r.correct, 0);
       const totalWrong = Object.values(answers).reduce((s, r) => s + r.wrong, 0);
-      const rate = (totalDone) ? Math.round(totalCorrect / (totalCorrect + totalWrong) * 100) : 0;
+      const rate = (totalCorrect + totalWrong) ? Math.round(totalCorrect / (totalCorrect + totalWrong) * 100) : 0;
 
       // 近14天打卡日历
       let cal = '';

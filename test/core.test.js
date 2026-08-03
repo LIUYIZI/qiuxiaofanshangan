@@ -82,10 +82,17 @@ function assert(name, cond, extra) {
   Store.recordAnswer(goodQ.id, true);
   Store.recordAnswer(goodQ.id, true);
   const s = Quiz._score(goodQ, Store.getAnswers(), {});
-  assert('掌握题得分=10（低优先级）', s === 10, s);
+  assert('掌握题得分=10（最低优先级）', s === 10, s);
   const wrongQ = daily.questions.find(q => wrongIds.includes(q.id));
   const sw = Quiz._score(wrongQ, Store.getAnswers(), {});
   assert('薄弱题得分<掌握题（优先抽取）', sw < s, sw + ' vs ' + s);
+
+  console.log('== 抽题：score排序方向（越小越优先） ==');
+  const freshQ = Bank.questions.find(q => !q.isSubjective && !Store.getAnswers()[q.id]);
+  const sFresh = Quiz._score(freshQ, Store.getAnswers(), {});
+  assert('未做过题得分=0（最优先）', sFresh === 0, sFresh);
+  assert('全错题(1) < 掌握题(10)', sw === 1, sw);
+  assert('未做过(0) < 全错(1)', sFresh < sw, sFresh + ' vs ' + sw);
 
   console.log('== 模块练习 ==');
   const mod = await Quiz.drawModule('策略选择', 5);

@@ -4,7 +4,8 @@
   "description": "武汉教师D类每日刷题系统（静态站）",
   "private": true,
   "scripts": {
-    "test": "node test/core.test.js && node test/ui.test.js"
+    "test": "node test/core.test.js && node test/ui.test.js",
+    "serve": "python3 -m http.server 8000"
   },
   "dependencies": {
     "jsdom": "^24.0.0"

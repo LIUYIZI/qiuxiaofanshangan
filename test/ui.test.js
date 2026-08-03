@@ -34,7 +34,7 @@ function assert(name, cond, extra) {
 }
 
 (async () => {
-  const { App, Quiz, Bank } = window;
+  const { App, Quiz, Bank, Store } = window;
 
   console.log('== 首页渲染 ==');
   App.show('home');
@@ -42,7 +42,7 @@ function assert(name, cond, extra) {
   let htmlOut = document.getElementById('view').innerHTML;
   assert('首页含"开始今日测验"按钮', htmlOut.includes('开始今日测验'));
   assert('首页含模块列表', htmlOut.includes('策略选择') && htmlOut.includes('判断推理'));
-  assert('题库数量展示', htmlOut.includes('已刷题'));
+  assert('已刷/题库数量展示', htmlOut.includes('已刷') && htmlOut.includes('题库'));
 
   console.log('== 启动今日测验 ==');
   const cfg = await Quiz.drawDaily();
@@ -118,6 +118,16 @@ function assert(name, cond, extra) {
   assert('结束页显示正确率', v.includes('%'));
   assert('结束页显示知识点掌握度', v.includes('知识点掌握度'));
   assert('结束页有返回首页按钮', v.includes('btnHome'));
+
+  console.log('== 日志口径（主观题不计分） ==');
+  const logs = Store.getLogs();
+  const lastLog = logs[logs.length - 1];
+  const objTotal = cfg.questions.filter(q => !q.isSubjective).length;
+  assert('日志total=客观题数', lastLog.total === objTotal, lastLog.total + ' vs ' + objTotal);
+  assert('日志answered<=客观题数', lastLog.answered <= objTotal, lastLog.answered);
+  // 结果页 rate 与日志 rate 一致（页面显示 rate%，日志存 rate）
+  const pageRate = parseInt(v.match(/(\d+)%/) && v.match(/(\d+)%/)[1], 10);
+  assert('结果页与日志正确率一致', pageRate === lastLog.rate, pageRate + ' vs ' + lastLog.rate);
 
   console.log('== 统计页 ==');
   Quiz.current = null;

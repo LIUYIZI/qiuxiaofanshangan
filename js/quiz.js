@@ -61,7 +61,8 @@
         deficit--;
       }
 
-      /* 综应主观题：1题轮换（取作答次数最少的） */
+      /* 综应主观题：按配置取作答次数最少的 */
+      const subN = CONFIG.daily.subjective || 1;
       const subs = Bank.subjective()
         .slice()
         .sort((a, b) => {
@@ -69,7 +70,7 @@
           return (ar ? ar.correct + ar.wrong : 0) - (br ? br.correct + br.wrong : 0);
         });
       const questions = [...picked];
-      if (subs.length) questions.push(subs[0]);
+      for (let i = 0; i < subN && i < subs.length; i++) questions.push(subs[i]);
 
       return { questions, mode: 'daily', title: '今日测验 · ' + Store.today() };
     },
@@ -97,17 +98,16 @@
       return { questions: pool, mode: 'mistakes', title: '错题重刷 · ' + pool.length + '题' };
     },
 
-    /* 题目得分：越薄弱得分越高（排序升序则薄弱在前） */
+    /* 题目得分：越小越优先（未做过0 < 全错1 < 半对<2 < 全对≈2 < 已掌握10） */
     _score(q, answers, seen) {
       const rec = answers[q.id];
-      if (!rec) return 2;                       // 没做过：中等优先（新题）
+      if (!rec || rec.correct + rec.wrong === 0) return 0;   // 未做过：最优先
       const total = rec.correct + rec.wrong;
-      if (total === 0) return 2;
       const rate = rec.correct / total;
-      // 连续答对>=2次且正确率>=0.7 → 已掌握，降低优先级
+      // 连续答对>=2次且正确率>=0.7 → 已掌握，最低优先级
       if (rec.correct >= CONFIG.draw.masteredThreshold && rate >= 0.7) return 10;
-      // 薄弱：按错误率加权（score越小越优先，所以返回 1 - rate*weight）
-      return 1 - rate * (CONFIG.draw.weakBonus / 3);
+      // 答对率越低得分越小 → 越优先（薄弱在前）
+      return 1 + rate * (CONFIG.draw.weakBonus / 3);
     },
 
     /* ---------- 测验流程 ---------- */
@@ -144,8 +144,9 @@
     finish() {
       const c = this.current;
       c.done = true;
-      const total = c.questions.length;
-      const results = c.results.filter(Boolean);
+      // 与结果页同口径：只统计客观题（主观题 ok===null 不计分）
+      const results = c.results.filter(r => r && r.ok !== null);
+      const total = c.questions.filter(q => !q.isSubjective).length;
       const answered = results.length;
       const correct = results.filter(r => r.ok).length;
       const rate = answered ? Math.round(correct / answered * 100) : 0;
@@ -156,6 +157,7 @@
         answered: answered,
         correct: correct,
         rate: rate,
+        subjective: c.questions.filter(q => q.isSubjective).length,
       };
       Store.recordQuiz(log);
       this.markSeen(c.questions);
