@@ -19,6 +19,8 @@ global.fetch = async url => {
 window.fetch = global.fetch;
 global.confirm = () => true;
 global.alert = msg => { global.lastAlert = msg; };
+window.confirm = () => true;   // jsdom 默认 confirm 未实现，需注入
+window.alert = msg => { global.lastAlert = msg; };
 
 // 加载JS（按index.html顺序）
 const files = ['js/storage.js', 'js/config.js', 'js/bank.js', 'js/quiz.js', 'js/app.js'];
@@ -175,6 +177,22 @@ function assert(name, cond, extra) {
     v = document.getElementById('view').innerHTML;
     assert('展开题目详情含解读', v.includes('解读') || v.includes('参考答案'));
   }
+
+  console.log('== A1回归：测验进行中，搜索选项不得劫持判分 ==');
+  const cfg2 = await Quiz.drawDaily();
+  Quiz.start(cfg2);
+  const resLenBefore = Quiz.current.results.filter(Boolean).length;
+  document.querySelector('.tab[data-tab="home"]').click();  // confirm mock 返回 true
+  await new Promise(r => setTimeout(r, 50));
+  const si2 = document.getElementById('searchInput');
+  si2.value = '学生';
+  si2.dispatchEvent(new window.Event('input'));
+  const item2 = document.querySelector('.search-item');
+  if (item2) item2.click();  // 展开详情（选项无 data-letter）
+  const opt2 = document.querySelector('.search-item-detail .option');
+  if (opt2) opt2.click();    // 点击搜索复习选项
+  assert('搜索选项未劫持测验判分', Quiz.current.results.filter(Boolean).length === resLenBefore);
+  assert('搜索选项点击后仍在测验中', !Quiz.current.done);
 
   console.log('== 错题页 ==');
   App.show('mistakes');

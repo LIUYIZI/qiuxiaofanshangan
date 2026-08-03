@@ -27,7 +27,10 @@
 
     bindTabs() {
       document.querySelectorAll('.tab').forEach(t => {
-        t.addEventListener('click', () => this.show(t.dataset.tab));
+        t.addEventListener('click', () => {
+          if (Quiz.current && !Quiz.current.done && !confirm('退出当前测验？')) return;
+          this.show(t.dataset.tab);
+        });
       });
     },
     bindBrand() {
@@ -125,6 +128,7 @@
       if (searchInput) {
         searchInput.addEventListener('input', () => {
           this._searchQ = searchInput.value;
+          this._searchShowAll = false;  // 新搜索重置展开状态
           this.renderSearchResults();
         });
         this.renderSearchChips();
@@ -144,6 +148,7 @@
       chips.querySelectorAll('.chip').forEach(c => {
         c.addEventListener('click', () => {
           this._searchMod = c.dataset.mod === '全部' ? '' : c.dataset.mod;
+          this._searchShowAll = false;
           this.renderSearchChips();
           this.renderSearchResults();
         });
@@ -155,6 +160,7 @@
       if (!box) return;
       const q = (this._searchQ || '').trim().toLowerCase();
       const mod = this._searchMod || '';
+      if (!q && !mod) { box.innerHTML = ''; return; }  // 空搜索不展示
       let list = Bank.questions.filter(qu => {
         if (mod && qu.module !== mod) return false;
         if (!q) return true;
@@ -271,6 +277,7 @@
           </select>
           <button class="btn-sec" id="fbPractice" style="margin-top:8px;">▶ 直接开始练习该知识点</button>`;
         document.getElementById('fbPractice').addEventListener('click', async () => {
+          if (Quiz.current && !Quiz.current.done && !confirm('退出当前测验？')) return;
           const tag = document.getElementById('fbTag').value;
           const qs = Bank.questions.filter(q => !q.isSubjective && (q.tag || q.module) === tag);
           if (qs.length) Quiz.start({ questions: qs, mode: 'tag:' + tag, title: tag + ' · 针对性练习' });
@@ -300,7 +307,7 @@
       // 生成可复制的结构化反馈文本
       const score = Store.getLogs().slice(-1)[0];
       const lines = [
-        '【反馈】' + (type || '其他'),
+        '【反馈】' + (type || '反馈'),
         '时间：' + Store.today(),
         '内容：' + (text.trim() || '(无补充说明)') + (tag ? '（知识点：' + tag + '）' : ''),
         score ? ('最近成绩：' + score.rate + '%（' + score.correct + '/' + score.answered + '）') : '',
@@ -317,18 +324,21 @@
       if (box) box.innerHTML = resultHtml;
       const copyBtn = document.getElementById('fbCopy');
       if (copyBtn) copyBtn.addEventListener('click', () => {
+        let ok = false;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(out).then(() => { copyBtn.textContent = '✅ 已复制'; }).catch(() => { copyBtn.textContent = '⚠️ 复制失败，请长按选择文本手动复制'; });
+          return;
+        }
         const pre = document.querySelector('.fb-out');
         if (pre) {
           const range = document.createRange();
           range.selectNodeContents(pre);
           const sel = window.getSelection();
           sel.removeAllRanges(); sel.addRange(range);
-          try { document.execCommand('copy'); } catch (e) {}
+          try { ok = document.execCommand('copy'); } catch (e) {}
           sel.removeAllRanges();
         }
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(out).then(() => { copyBtn.textContent = '✅ 已复制'; }).catch(() => {});
-        } else { copyBtn.textContent = '✅ 已复制'; }
+        copyBtn.textContent = ok ? '✅ 已复制' : '⚠️ 复制失败，请长按选择文本手动复制';
       });
     },
 
@@ -488,7 +498,7 @@
     /* ================= 练习页 ================= */
     renderPractice() {
       const logs = Store.getLogs();
-      const practiceLogs = logs.filter(l => l.mode && l.mode.indexOf('module') === 0 || l.mode === 'practice:subjective');
+      const practiceLogs = logs.filter(l => l.mode && (l.mode.indexOf('module') === 0 || l.mode === 'practice:subjective' || l.mode.indexOf('tag:') === 0));
       const recent = practiceLogs.slice(-10).reverse();
       this.el().innerHTML = `
         <div class="section-title">专项练习记录</div>
@@ -610,6 +620,7 @@
       const c = Quiz.current;
       const q = c.questions[c.idx];
       const letter = opt.dataset.letter;
+      if (!letter) return;  // 搜索复习视图的选项（无data-letter）不参与判分
       const ok = letter === q.answerKey;
       Quiz.submitAnswer(q, ok, letter);
       App.renderQuiz();
