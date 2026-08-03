@@ -1,18 +1,12 @@
 {
-  "name": "site",
+  "name": "wuhan-teacher-d-exam",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "directories": {
-    "test": "test"
-  },
+  "description": "武汉教师D类每日刷题系统（静态站）",
+  "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node test/core.test.js && node test/ui.test.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "jsdom": "^30.0.1"
+    "jsdom": "^24.0.0"
   }
 }
