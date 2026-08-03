@@ -3,8 +3,8 @@
   const CONFIG = {
     /* 每日测验题量 */
     daily: {
-      objective: 10,   // 职测客观题数量
-      subjective: 1,   // 综应主观题数量
+      objective: 15,   // 职测客观题数量
+      subjective: 2,   // 综应主观题数量
     },
 
     /* 客观题模块权重（决定每日抽题分布；数值越大占比越高） */

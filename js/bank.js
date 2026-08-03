@@ -4,7 +4,13 @@
   const BANK_FILES = [
     'data/bank-职测D-官方示例题.json',
     'data/bank-职测D-策略选择-01.json',
-    'data/bank-综应D-主观题-01.json'
+    'data/bank-职测D-策略选择-02.json',
+    'data/bank-职测D-判断推理-01.json',
+    'data/bank-职测D-言语理解-01.json',
+    'data/bank-职测D-常识判断-01.json',
+    'data/bank-职测D-数量分析-01.json',
+    'data/bank-综应D-主观题-01.json',
+    'data/bank-综应D-主观题-02.json'
   ];
 
   const Bank = {

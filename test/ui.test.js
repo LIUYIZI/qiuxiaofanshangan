@@ -137,6 +137,45 @@ function assert(name, cond, extra) {
   assert('统计页显示打卡日历', v.includes('calendar'));
   assert('统计页显示测验记录', v.includes('测验记录'));
 
+  console.log('== 反馈页 ==');
+  App.show('feedback');
+  v = document.getElementById('view').innerHTML;
+  assert('反馈页含4种类型', ['知识点疑问', '想再练', '系统bug', '优化建议'].every(t => v.includes(t)));
+  const typeBtn = document.querySelector('.fb-type[data-type="疑问"]');
+  typeBtn.click();
+  const fbText = document.getElementById('fbText');
+  fbText.value = '策略选择第3题解析看不懂';
+  fbText.dispatchEvent(new window.Event('input'));
+  const submitBtn = document.getElementById('fbSubmit');
+  assert('选择类型后提交按钮可用', !submitBtn.disabled);
+  submitBtn.click();
+  v = document.getElementById('view').innerHTML;
+  assert('生成反馈结果', v.includes('已生成'));
+  assert('反馈文本含内容', v.includes('策略选择第3题解析看不懂'));
+  assert('反馈历史已记录', v.includes('反馈历史（1）'));
+
+  console.log('== 搜索题库 ==');
+  App.show('home');
+  await new Promise(r => setTimeout(r, 50));
+  const searchInput = document.getElementById('searchInput');
+  assert('首页含搜索框', !!searchInput);
+  searchInput.value = '欺凌';
+  searchInput.dispatchEvent(new window.Event('input'));
+  v = document.getElementById('view').innerHTML;
+  assert('搜索欺凌有结果', v.includes('欺凌') && v.includes('共'));
+  // chip筛选
+  const chip = document.querySelector('.chip[data-mod="策略选择"]');
+  if (chip) chip.click();
+  v = document.getElementById('view').innerHTML;
+  assert('chip筛选策略选择', v.includes('策略选择'));
+  // 展开题目详情
+  const firstItem = document.querySelector('.search-item');
+  if (firstItem) {
+    firstItem.click();
+    v = document.getElementById('view').innerHTML;
+    assert('展开题目详情含解读', v.includes('解读') || v.includes('参考答案'));
+  }
+
   console.log('== 错题页 ==');
   App.show('mistakes');
   v = document.getElementById('view').innerHTML;

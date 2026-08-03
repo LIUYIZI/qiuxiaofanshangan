@@ -65,6 +65,17 @@
       this.saveSubDone(done);
     },
 
+    /* 用户反馈历史 [{ date, type, tag, text }] */
+    getFeedbacks() {
+      try { return JSON.parse(localStorage.getItem('whteacher_feedback_v1')) || []; }
+      catch (e) { return []; }
+    },
+    saveFeedback(fb) {
+      const list = this.getFeedbacks();
+      list.push(Object.assign({ date: Store.today(), ts: Date.now() }, fb));
+      try { localStorage.setItem('whteacher_feedback_v1', JSON.stringify(list.slice(-50))); } catch (e) {}
+    },
+
     /* 连续打卡天数 */
     getStreak() {
       const logs = this.getLogs();

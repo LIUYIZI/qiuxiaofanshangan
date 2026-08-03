@@ -255,3 +255,51 @@ html, body {
   body { background: #e2e8f0; }
   .view { padding-top: 72px; }
 }
+
+/* ===== 搜索 ===== */
+.search-input {
+  width: 100%;
+  border: 2px solid var(--border); border-radius: 12px;
+  padding: 11px 14px; font-size: 15px; font-family: inherit;
+  background: #f8fafc;
+}
+.search-input:focus { outline: none; border-color: var(--primary); background: #fff; }
+.search-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.chip {
+  border: 1.5px solid var(--border); background: #f8fafc;
+  border-radius: 999px; padding: 4px 12px; font-size: 12px;
+  color: var(--text-light); cursor: pointer;
+}
+.chip.active { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 600; }
+.search-item {
+  border-bottom: 1px solid var(--border); padding: 10px 2px; cursor: pointer;
+}
+.search-item:last-child { border-bottom: none; }
+.search-item-head { display: flex; align-items: center; margin-bottom: 4px; }
+.search-item-stem { font-size: 14px; color: #334155; }
+
+/* ===== 反馈页 ===== */
+.fb-types { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.fb-type {
+  border: 2px solid var(--border); background: #f8fafc;
+  border-radius: 12px; padding: 12px 6px; font-size: 14px;
+  color: var(--text); cursor: pointer; font-weight: 600;
+}
+.fb-type.active { border-color: var(--primary); background: #eff6ff; color: var(--primary-dark); }
+.fb-text {
+  width: 100%; min-height: 90px; margin-top: 12px;
+  border: 2px solid var(--border); border-radius: 12px;
+  padding: 12px; font-size: 14px; font-family: inherit;
+  resize: vertical; background: #f8fafc;
+}
+.fb-text:focus { outline: none; border-color: var(--primary); }
+.fb-select {
+  width: 100%; border: 2px solid var(--border); border-radius: 12px;
+  padding: 10px 12px; font-size: 14px; background: #fff;
+}
+.fb-out {
+  background: #0f172a; color: #e2e8f0;
+  border-radius: 10px; padding: 12px; margin: 8px 0;
+  font-size: 13px; white-space: pre-wrap; word-break: break-all;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+}

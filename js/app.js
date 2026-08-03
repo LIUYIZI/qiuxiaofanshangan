@@ -21,6 +21,7 @@
       if (name === 'home') this.renderHome();
       else if (name === 'practice') this.renderPractice();
       else if (name === 'mistakes') this.renderMistakes();
+      else if (name === 'feedback') this.renderFeedback();
       else if (name === 'stats') this.renderStats();
     },
 
@@ -75,6 +76,11 @@
           <button class="btn-main" id="btnDaily">${todayDone ? '✅ 今日已完成 · 再来一组' : '🚀 开始今日测验'}</button>
           <button class="btn-sec" id="btnMistakes">📕 错题重刷</button>
         </div>
+        <div class="card" style="padding:12px 14px;">
+          <input type="search" id="searchInput" class="search-input" placeholder="🔍 搜索题库：知识点 / 题干关键词 / 模块" value="${esc(this._searchQ || '')}">
+          <div class="search-chips" id="searchChips"></div>
+          <div id="searchResults"></div>
+        </div>
         <div class="section-title">练习模式</div>
         <div class="card" style="padding:6px 0;">
           <ul class="menu-list">
@@ -112,6 +118,217 @@
           if (!cfg.questions.length) { alert('该模块题库建设中，敬请期待'); return; }
           Quiz.start(cfg);
         });
+      });
+
+      /* 搜索题库 */
+      const searchInput = document.getElementById('searchInput');
+      if (searchInput) {
+        searchInput.addEventListener('input', () => {
+          this._searchQ = searchInput.value;
+          this.renderSearchResults();
+        });
+        this.renderSearchChips();
+        this.renderSearchResults();
+      }
+    },
+
+    /* ================= 搜索题库 ================= */
+    renderSearchChips() {
+      const chips = document.getElementById('searchChips');
+      if (!chips) return;
+      const mods = Bank.modules();
+      const sel = this._searchMod || '全部';
+      chips.innerHTML = ['全部', ...Object.keys(mods)].map(m =>
+        `<button class="chip ${m === sel ? 'active' : ''}" data-mod="${esc(m)}">${esc(m)}${m !== '全部' ? ' ' + mods[m] : ''}</button>`
+      ).join('');
+      chips.querySelectorAll('.chip').forEach(c => {
+        c.addEventListener('click', () => {
+          this._searchMod = c.dataset.mod === '全部' ? '' : c.dataset.mod;
+          this.renderSearchChips();
+          this.renderSearchResults();
+        });
+      });
+    },
+
+    renderSearchResults() {
+      const box = document.getElementById('searchResults');
+      if (!box) return;
+      const q = (this._searchQ || '').trim().toLowerCase();
+      const mod = this._searchMod || '';
+      let list = Bank.questions.filter(qu => {
+        if (mod && qu.module !== mod) return false;
+        if (!q) return true;
+        const hay = (qu.stem + ' ' + (qu.tag || '') + ' ' + (qu.analysis || '') + ' ' + (qu.module || '')).toLowerCase();
+        return hay.includes(q);
+      });
+      if (!list.length) {
+        box.innerHTML = '<div class="empty" style="padding:16px 0;"><div class="empty-emoji">🔍</div>没有匹配的题目</div>';
+        return;
+      }
+      const showAll = this._searchShowAll;
+      const visible = showAll ? list : list.slice(0, 15);
+      box.innerHTML = `
+        <div style="font-size:12px;color:var(--text-light);margin-bottom:6px;">共 ${list.length} 题${list.length > visible.length ? '，显示前15题' : ''}</div>
+        ${visible.map(q => this.searchItemHtml(q)).join('')}
+        ${list.length > visible.length ? '<button class="btn-sec" id="searchMore" style="margin-top:6px;">展开全部 ' + list.length + ' 题</button>' : ''}
+      `;
+      const more = document.getElementById('searchMore');
+      if (more) more.addEventListener('click', () => { this._searchShowAll = true; this.renderSearchResults(); });
+      box.querySelectorAll('[data-qid]').forEach(item => {
+        item.addEventListener('click', () => this.toggleSearchDetail(item.dataset.qid));
+      });
+    },
+
+    searchItemHtml(q) {
+      const answered = !!Store.getAnswers()[q.id];
+      const okMark = answered ? '<span style="font-size:11px;color:var(--success);">✓做过</span>' : '<span style="font-size:11px;color:var(--text-light);">未做</span>';
+      return `
+        <div class="search-item" data-qid="${esc(q.id)}">
+          <div class="search-item-head">
+            <span class="quiz-tag ${q.isSubjective ? 'sub' : 'obj'}">${esc(q.module)}</span>
+            <span style="font-size:11px;color:var(--text-light);margin-left:6px;">${esc(q.tag || '')}</span>
+            <span style="margin-left:auto;">${okMark}</span>
+          </div>
+          <div class="search-item-stem">${esc(q.stem.slice(0, 60))}${q.stem.length > 60 ? '…' : ''}</div>
+          <div class="search-item-detail" style="display:none;"></div>
+        </div>`;
+    },
+
+    toggleSearchDetail(id) {
+      const item = document.querySelector('[data-qid="' + id + '"]');
+      if (!item) return;
+      const detail = item.querySelector('.search-item-detail');
+      const q = Bank.questions.find(x => x.id === id);
+      if (!q) return;
+      if (detail.style.display === 'block') { detail.style.display = 'none'; return; }
+      let html;
+      if (q.isSubjective) {
+        html = `<div class="analysis-box" style="margin-top:8px;">
+          <div class="analysis-label">参考答案</div>${esc(q.answer || '')}
+          ${q.points ? `<div class="analysis-label" style="margin-top:6px;">评分要点</div>${esc(q.points)}` : ''}
+        </div>`;
+      } else {
+        const opts = (q.options || []).map((o, i) => {
+          const L = String.fromCharCode(65 + i);
+          const cls = L === q.answerKey ? 'correct' : '';
+          return `<div class="option ${cls}" style="cursor:default;">${esc(o)}</div>`;
+        }).join('');
+        html = `<div style="margin-top:8px;">${opts}</div>
+          <div class="analysis-box"><div class="analysis-label">解读</div>${esc(q.analysis || '')}</div>`;
+      }
+      detail.innerHTML = html;
+      detail.style.display = 'block';
+    },
+
+    /* ================= 反馈页 ================= */
+    renderFeedback() {
+      const history = Store.getFeedbacks().slice().reverse();
+      this.el().innerHTML = `
+        <div class="section-title">反馈给辅导师</div>
+        <div class="card">
+          <div style="font-size:13px;color:var(--text-light);margin-bottom:10px;">反馈类型（点选后填写说明，提交会生成一条结构化反馈，复制后发到 Hermes 会话即可，我会处理）</div>
+          <div class="fb-types">
+            <button class="fb-type" data-type="疑问">❓ 知识点疑问</button>
+            <button class="fb-type" data-type="再练">🔁 想再练</button>
+            <button class="fb-type" data-type="bug">🐛 系统bug</button>
+            <button class="fb-type" data-type="优化">💡 优化建议</button>
+          </div>
+          <div id="fbExtra"></div>
+          <textarea id="fbText" class="fb-text" placeholder="补充说明（可选）：哪道题看不懂？想练哪个知识点？遇到了什么问题？"></textarea>
+          <button class="btn-main" id="fbSubmit" style="margin-top:10px;" disabled>📋 生成反馈</button>
+          <div id="fbResult"></div>
+        </div>
+        <div class="section-title">反馈历史（${history.length}）</div>
+        <div class="card" style="padding:6px 0;">
+          ${history.length ? `<ul class="menu-list">${history.map(f => `
+            <li><div><div class="menu-title" style="font-size:13px;">${esc(f.type)}${f.tag ? ' · ' + esc(f.tag) : ''}</div>
+            <div class="menu-sub">${esc((f.text || '').slice(0, 50)) || '（无说明）'} · ${f.date}</div></div></li>`).join('')}
+          </ul>` : '<div class="empty"><div class="empty-emoji">💬</div>还没有反馈记录</div>'}
+        </div>
+      `;
+      this._fbType = '';
+      document.querySelectorAll('.fb-type').forEach(b => {
+        b.addEventListener('click', () => {
+          this._fbType = b.dataset.type;
+          document.querySelectorAll('.fb-type').forEach(x => x.classList.toggle('active', x === b));
+          this.renderFbExtra();
+          this.updateFbSubmit();
+        });
+      });
+      document.getElementById('fbText').addEventListener('input', () => this.updateFbSubmit());
+      document.getElementById('fbSubmit').addEventListener('click', () => this.submitFeedback());
+    },
+
+    renderFbExtra() {
+      const box = document.getElementById('fbExtra');
+      if (!box) return;
+      if (this._fbType === '再练') {
+        const tags = [...new Set(Bank.questions.filter(q => !q.isSubjective).map(q => q.tag || q.module))];
+        box.innerHTML = `
+          <div style="font-size:13px;color:var(--text-light);margin:6px 0;">选择要再练的知识点：</div>
+          <select id="fbTag" class="fb-select">
+            ${tags.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('')}
+          </select>
+          <button class="btn-sec" id="fbPractice" style="margin-top:8px;">▶ 直接开始练习该知识点</button>`;
+        document.getElementById('fbPractice').addEventListener('click', async () => {
+          const tag = document.getElementById('fbTag').value;
+          const qs = Bank.questions.filter(q => !q.isSubjective && (q.tag || q.module) === tag);
+          if (qs.length) Quiz.start({ questions: qs, mode: 'tag:' + tag, title: tag + ' · 针对性练习' });
+          else alert('该知识点暂无题目');
+        });
+      } else {
+        box.innerHTML = '';
+      }
+    },
+
+    updateFbSubmit() {
+      const btn = document.getElementById('fbSubmit');
+      if (!btn) return;
+      const hasType = !!this._fbType;
+      const hasText = (document.getElementById('fbText') && document.getElementById('fbText').value.trim());
+      btn.disabled = !hasType && !hasText;
+      btn.textContent = hasType ? '📋 生成反馈' : '📋 生成反馈（先选类型或填说明）';
+    },
+
+    submitFeedback() {
+      const type = this._fbType;
+      const tagEl = document.getElementById('fbTag');
+      const tag = tagEl ? tagEl.value : '';
+      const text = (document.getElementById('fbText') || {}).value || '';
+      const fb = { type: type || '反馈', tag: tag, text: text.trim() };
+      Store.saveFeedback(fb);
+      // 生成可复制的结构化反馈文本
+      const score = Store.getLogs().slice(-1)[0];
+      const lines = [
+        '【反馈】' + (type || '其他'),
+        '时间：' + Store.today(),
+        '内容：' + (text.trim() || '(无补充说明)') + (tag ? '（知识点：' + tag + '）' : ''),
+        score ? ('最近成绩：' + score.rate + '%（' + score.correct + '/' + score.answered + '）') : '',
+      ].filter(Boolean);
+      const out = lines.join('\n');
+      const resultHtml = `
+        <div class="analysis-box" style="margin-top:10px;">
+          <div class="analysis-label">已生成，复制后发到 Hermes 会话：</div>
+          <pre class="fb-out">${esc(out)}</pre>
+          <button class="btn-nav btn-next" id="fbCopy" style="width:100%;">📄 复制反馈</button>
+        </div>`;
+      this.renderFeedback();  // 重渲染（清空输入状态、刷新历史）
+      const box = document.getElementById('fbResult');
+      if (box) box.innerHTML = resultHtml;
+      const copyBtn = document.getElementById('fbCopy');
+      if (copyBtn) copyBtn.addEventListener('click', () => {
+        const pre = document.querySelector('.fb-out');
+        if (pre) {
+          const range = document.createRange();
+          range.selectNodeContents(pre);
+          const sel = window.getSelection();
+          sel.removeAllRanges(); sel.addRange(range);
+          try { document.execCommand('copy'); } catch (e) {}
+          sel.removeAllRanges();
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(out).then(() => { copyBtn.textContent = '✅ 已复制'; }).catch(() => {});
+        } else { copyBtn.textContent = '✅ 已复制'; }
       });
     },
 

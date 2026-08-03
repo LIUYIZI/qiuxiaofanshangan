@@ -39,35 +39,36 @@ function assert(name, cond, extra) {
 (async () => {
   console.log('== 题库加载 ==');
   await Bank.load();
-  assert('题库共34题', Bank.questions.length === 34, Bank.questions.length);
-  assert('客观题 = 26', Bank.questions.filter(q => !q.isSubjective).length === 26);
-  assert('主观题 = 8', Bank.questions.filter(q => q.isSubjective).length === 8);
+  assert('题库共80题', Bank.questions.length === 80, Bank.questions.length);
+  assert('客观题 = 70', Bank.questions.filter(q => !q.isSubjective).length === 70);
+  assert('主观题 = 10', Bank.questions.filter(q => q.isSubjective).length === 10);
 
   console.log('== 抽题：今日测验 ==');
   const daily = await Quiz.drawDaily();
-  assert('每日测验11题（10客观+1主观）', daily.questions.length === 11, daily.questions.length);
+  assert('每日测验17题（15客观+2主观）', daily.questions.length === 17, daily.questions.length);
   const objCount = daily.questions.filter(q => !q.isSubjective).length;
   const subCount = daily.questions.filter(q => q.isSubjective).length;
-  assert('客观10题', objCount === 10, objCount);
-  assert('主观1题', subCount === 1, subCount);
+  assert('客观15题', objCount === 15, objCount);
+  assert('主观2题', subCount === 2, subCount);
   // 模块分布
   const mods = {};
   daily.questions.filter(q => !q.isSubjective).forEach(q => mods[q.module] = (mods[q.module]||0)+1);
   console.log('  模块分布:', JSON.stringify(mods));
   assert('包含策略选择', mods['策略选择'] >= 2, mods['策略选择']);
+  assert('包含判断推理', (mods['判断推理']||0) >= 2, mods['判断推理']);
 
   console.log('== 模拟作答（记录错题） ==');
-  // 模拟：把策略选择前3题答错，其他答对
+  // 模拟：把前3道客观题答错，其他答对；主观题标记完成
   const wrongIds = [];
   daily.questions.forEach((q, i) => {
     if (q.isSubjective) { Store.recordSubjective(q.id); return; }
-    const isWrong = q.module === '策略选择' && i < 3;
+    const isWrong = i < 3;
     if (isWrong) wrongIds.push(q.id);
     Store.recordAnswer(q.id, !isWrong);
   });
   Quiz.markSeen(daily.questions);
   const answers = Store.getAnswers();
-  assert('作答记录已保存', Object.keys(answers).length === 10, Object.keys(answers).length);
+  assert('作答记录已保存', Object.keys(answers).length === 15, Object.keys(answers).length);
   assert('错题3道', wrongIds.length === 3, wrongIds.length);
 
   console.log('== 抽题：错题重刷 ==');
@@ -101,7 +102,7 @@ function assert(name, cond, extra) {
 
   console.log('== 主观题完成标记 ==');
   const subDone = Store.getSubDone();
-  assert('主观题已标记完成', Object.keys(subDone).length === 1, Object.keys(subDone).length);
+  assert('主观题已标记完成', Object.keys(subDone).length === 2, Object.keys(subDone).length);
 
   console.log('== 打卡统计 ==');
   Store.recordQuiz({ mode: 'daily', title: '今日测验', total: 11, answered: 11, correct: 7, rate: 64 });
