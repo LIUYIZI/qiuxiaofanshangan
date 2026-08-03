@@ -1,0 +1,52 @@
+/* ===== 题库加载：注册题库 JSON 文件 ===== */
+(function (global) {
+  /* 题库清单：新题目加入 data/ 后在此注册 */
+  const BANK_FILES = [
+    'data/bank-职测D-官方示例题.json',
+    'data/bank-职测D-策略选择-01.json',
+    'data/bank-综应D-主观题-01.json'
+  ];
+
+  const Bank = {
+    questions: [],      // 全部题目
+    loaded: false,
+    loadPromise: null,
+
+    load() {
+      if (this.loadPromise) return this.loadPromise;
+      this.loadPromise = Promise.all(
+        BANK_FILES.map(url => fetch(url).then(r => {
+          if (!r.ok) throw new Error('加载题库失败: ' + url);
+          return r.json();
+        }).catch(err => { console.warn(err); return { questions: [] }; }))
+      ).then(banks => {
+        this.questions = banks.flatMap(b => (b.questions || []).map(q => Object.assign({}, q)));
+        // 客观题统一归一化
+        this.questions.forEach(q => {
+          q.isSubjective = (q.type === 'subjective');
+          q.answerKey = q.answer ? String(q.answer).trim().toUpperCase() : '';
+        });
+        this.loaded = true;
+        return this.questions;
+      });
+      return this.loadPromise;
+    },
+
+    /* 按模块取题 */
+    byModule(moduleName) {
+      return this.questions.filter(q => q.module === moduleName && !q.isSubjective);
+    },
+
+    modules() {
+      const m = {};
+      this.questions.forEach(q => { m[q.module] = (m[q.module] || 0) + 1; });
+      return m;
+    },
+
+    subjective() {
+      return this.questions.filter(q => q.isSubjective);
+    }
+  };
+
+  global.Bank = Bank;
+})(window);
