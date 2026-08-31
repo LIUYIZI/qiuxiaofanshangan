@@ -113,7 +113,7 @@
           <h1>🌸 球小凡上岸！</h1>
           <p>${CONFIG.site.target}</p>
           <p style="margin-top:6px;font-size:13px;color:var(--text-light);">距考试约 <b>${this.daysToExam()}</b> 天 · 连续打卡 ${streak} 天</p>
-          <div class="husband-msg">💗 ${EMOTION.pick('welcome')}</div>
+          <div class="husband-msg">💗 ${EMOTION.pick('welcome', { cycleId: cycle.id })}</div>
           ${cycleCard}
           <div class="cycle-groups">${groupCards}</div>
           ${cycleOver ? `
@@ -135,7 +135,7 @@
         if (todayDone) { this.show('stats'); return; }
         const btn = document.getElementById('btnDaily');
         const msg = document.getElementById('startMsg');
-        if (msg) msg.innerHTML = '💗 ' + EMOTION.pick('dailyStart');
+        if (msg) msg.innerHTML = '💗 ' + EMOTION.pick('dailyStart', { cycleId: cycle.id });
         btn.textContent = '组卷中…';
         btn.disabled = true;
         const cfg = await Quiz.drawCycle();
@@ -272,6 +272,30 @@
       });
     },
 
+    /* 知识点区块（kp一句话总结 + kp_mix联想/易混），无kp字段的题优雅降级为空 */
+    kpBlock(q) {
+      const kp = (q.kp || '').trim();
+      const mix = (q.kp_mix || '').trim();
+      if (!kp && !mix) return '';
+      let mixHtml = '';
+      if (mix) {
+        mixHtml = mix.split('；').map(seg => {
+          seg = seg.trim();
+          if (!seg) return '';
+          const isLink = seg.indexOf('联想') === 0;
+          const isConfuse = seg.indexOf('易混') === 0;
+          const cls = isLink ? 'kp-link' : isConfuse ? 'kp-confuse' : '';
+          const icon = isLink ? '🔗' : isConfuse ? '⚠️' : '·';
+          return `<div class="kp-mix ${cls}">${icon} ${esc(seg)}</div>`;
+        }).join('');
+      }
+      return `
+        <div class="kp-block">
+          ${kp ? `<div class="kp-line">📌 知识点：${esc(kp)}</div>` : ''}
+          ${mixHtml}
+        </div>`;
+    },
+
     /* ================= 测验卡片 ================= */
     renderQuiz(anim) {
       const c = Quiz.current;
@@ -337,6 +361,7 @@
           <div class="analysis-box">
             <span class="answer-badge ${ok ? 'ok' : 'no'}">${ok ? '✓ 回答正确' : '✗ 回答错误 · 正确答案 ' + q.answerKey}</span>
             <div class="analysis-source">📌 ${esc(q.tag || q.module)}${q.source ? ' · ' + esc(q.source) : ''}</div>
+            ${this.kpBlock(q)}
             <div class="analysis-label">解读</div>${esc(q.analysis || '（解析待补充）')}
           </div>`;
       }
@@ -355,6 +380,7 @@
           <div class="analysis-box">
             <span class="answer-badge ok">✓ 已作答，对照参考答案</span>
             <div class="analysis-source">📌 ${esc(q.tag || q.module)}${q.source ? ' · ' + esc(q.source) : ''}</div>
+            ${this.kpBlock(q)}
             <div class="analysis-label">参考答案</div>${esc(q.answer || '')}
             ${q.points ? `<div class="analysis-label" style="margin-top:8px;">评分要点</div>${esc(q.points)}` : ''}
           </div>`;
@@ -409,8 +435,8 @@
         </div>
         <div class="card hus-card">
           <div class="hus-title">❤️ 老公的鼓励</div>
-          <div class="hus-text">${EMOTION.streakMsg(Store.getStreak())}</div>
-          <div class="hus-sub">${EMOTION.pick('done')}</div>
+          <div class="hus-text">${EMOTION.streakMsg(Store.getStreak(), { cycleId: (Store.getCycle() || {}).id || CONFIG.cycle.id })}</div>
+          <div class="hus-sub">${EMOTION.pick('done', { cycleId: (Store.getCycle() || {}).id || CONFIG.cycle.id })}</div>
         </div>
         <div class="card">
           <div class="section-title" style="margin-top:0;">📊 知识点掌握度</div>

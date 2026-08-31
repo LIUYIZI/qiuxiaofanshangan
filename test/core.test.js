@@ -156,6 +156,37 @@ function assert(name, cond, extra) {
   assert('语料不含图片引用', !JSON.stringify(allMsgs).match(/<img|\.png|\.jpg/i));
   assert('老公角色自称贯穿', allMsgs.filter(s => s.indexOf('老公') >= 0).length >= 8, allMsgs.filter(s => s.indexOf('老公') >= 0).length);
 
+  console.log('== 情绪语库每日轮换（第8.5轮） ==');
+  const d1 = '2026-09-01', d2 = '2026-09-02';
+  assert('同日固定：welcome同一条', EM.pick('welcome', {date: d1}) === EM.pick('welcome', {date: d1}));
+  assert('同日固定：dailyStart同一条', EM.pick('dailyStart', {date: d1}) === EM.pick('dailyStart', {date: d1}));
+  assert('同日固定：done同一条', EM.pick('done', {date: d1}) === EM.pick('done', {date: d1}));
+  assert('连续两天不同：welcome', EM.pick('welcome', {date: d1}) !== EM.pick('welcome', {date: d2}));
+  assert('连续两天不同：dailyStart', EM.pick('dailyStart', {date: d1}) !== EM.pick('dailyStart', {date: d2}));
+  assert('连续两天不同：done', EM.pick('done', {date: d1}) !== EM.pick('done', {date: d2}));
+  assert('日期种子结果在语料内', EM.welcome.includes(EM.pick('welcome', {date: d1})));
+  assert('seed跨月进位也每天+1', EM.seedOf('2026-09-30') + 1 === EM.seedOf('2026-10-01'));
+  assert('分档语日期轮换：3档', EM.streak[3].includes(EM.streakMsg(3, {date: d1})) && EM.streak[3].includes(EM.streakMsg(3, {date: d2})));
+  assert('分档语日期轮换：other档', EM.streak.other.includes(EM.streakMsg(1, {date: d1})) && EM.streak.other.includes(EM.streakMsg(1, {date: d2})));
+
+  console.log('== 情绪语库周期专属（第8.5轮） ==');
+  const savedPeriods = EM.periods;
+  EM.periods = {
+    C2: {
+      welcome: ['周期C2专属欢迎语A', '周期C2专属欢迎语B'],
+      dailyStart: ['周期C2专属首刷语'],
+    }
+  };
+  assert('周期专属优先：welcome来自C2', ['周期C2专属欢迎语A', '周期C2专属欢迎语B'].includes(EM.pick('welcome', {cycleId: 'C2', date: d1})));
+  assert('周期专属优先：dailyStart来自C2', EM.pick('dailyStart', {cycleId: 'C2', date: d1}) === '周期C2专属首刷语');
+  assert('未覆盖分类回退：done用通用', EM.done.includes(EM.pick('done', {cycleId: 'C2', date: d1})));
+  assert('streak未覆盖回退：other用通用', EM.streak.other.includes(EM.streakMsg(1, {cycleId: 'C2', date: d1})));
+  assert('无周期参数用通用语料', EM.welcome.includes(EM.pick('welcome', {date: d1})));
+  EM.periods.C2.streak = { other: ['周期C2常规档语'] };
+  assert('streak周期覆盖生效', EM.streakMsg(1, {cycleId: 'C2', date: d1}) === '周期C2常规档语');
+  EM.periods = savedPeriods;
+  assert('恢复periods后回退通用', EM.welcome.includes(EM.pick('welcome', {cycleId: 'C2', date: d1})));
+
   console.log('\n结果: ' + pass + ' 通过, ' + fail + ' 失败');
   process.exit(fail ? 1 : 0);
 })().catch(e => { console.error('测试异常:', e); process.exit(1); });

@@ -57,6 +57,7 @@ function assert(name, cond, extra) {
   console.log('== 情绪语库UI：欢迎页老公陪伴语 ==');
   assert('欢迎页含老公陪伴语容器', htmlOut.includes('husband-msg'));
   assert('欢迎页老公语来自welcome语料', EM.welcome.some(s => htmlOut.includes(s)));
+  assert('欢迎页语料=当日日期种子', htmlOut.includes(EM.pick('welcome', { cycleId: (window.Store.getCycle() || {}).id || window.CONFIG.cycle.id, date: window.Store.today() })));
   assert('每日首刷语容器存在', !!document.getElementById('startMsg'));
 
   console.log('== 启动周期当日测验 ==');
@@ -80,6 +81,12 @@ function assert(name, cond, extra) {
   assert('显示"回答正确"徽章', v.includes('回答正确'));
   assert('显示解读', v.includes('解读'));
   assert('知识点标签显示', v.includes(q.tag || q.module));
+  if (q.kp) {
+    assert('知识点一句话显示(kp-block)', v.includes('kp-block') && v.includes(q.kp.slice(0, 8)));
+    assert('联想/易混提示(kp-mix)', v.includes('kp-mix') && (v.includes('联想') || v.includes('易混')));
+  } else {
+    assert('无kp字段的题不显示知识点区块', !v.includes('kp-block'));
+  }
 
   console.log('== 下一题/上一题 ==');
   // 在第2题未答时测切题（此时 btnNext 存在；答完最后一道会触发完成页，btnNext 消失）
@@ -124,9 +131,9 @@ function assert(name, cond, extra) {
 
   console.log('== 情绪语库UI：静态防回归 ==');
   const appSrc = fs.readFileSync(path.join(site, 'js/app.js'), 'utf8');
-  assert('app.js 含每日首刷语调用', appSrc.includes("EMOTION.pick('dailyStart')"));
-  assert('app.js 含打卡分档语调用', appSrc.includes('EMOTION.streakMsg'));
-  assert('app.js 含欢迎页陪伴语调用', appSrc.includes("EMOTION.pick('welcome')"));
+  assert('app.js 含每日首刷语调用(带周期参数)', appSrc.includes("EMOTION.pick('dailyStart', { cycleId"));
+  assert('app.js 含打卡分档语调用(带周期参数)', appSrc.includes('EMOTION.streakMsg(Store.getStreak()'));
+  assert('app.js 含欢迎页陪伴语调用(带周期参数)', appSrc.includes("EMOTION.pick('welcome', { cycleId"));
 
   console.log('== 日志口径 ==');
   const logs = Store.getLogs();
