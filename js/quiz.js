@@ -87,17 +87,19 @@
       return { questions, mode: 'cycle:' + cycle.id, title: cycle.id + '周期 · 第' + Math.min(day, cfg.days) + '天' };
     },
 
-    /* 错题重刷 */
-    async drawMistakes() {
+    /* 今日错题复习：按复习权重（艾宾浩斯节点优先 + 错误次数 + 时间衰减）排序全部错题 */
+    async drawTodayReview() {
       await Bank.load();
-      const answers = Store.getAnswers();
-      const wrongIds = Object.keys(answers).filter(id => {
-        const r = answers[id];
-        return r.wrong > 0 && r.correct === 0;  // 只刷从未答对的
-      });
-      const pool = Bank.questions.filter(q => wrongIds.includes(q.id) && !q.isSubjective);
-      pool.sort((a, b) => this._score(a, answers, {}) - this._score(b, answers, {}));
-      return { questions: pool, mode: 'mistakes', title: '错题重刷 · ' + pool.length + '题' };
+      const recs = Store.wrongRecords();
+      const pool = recs
+        .map(x => Bank.questions.find(q => q.id === x.id && !q.isSubjective))
+        .filter(Boolean);
+      const dueN = pool.filter(q => Store.reviewDue(Store.getAnswers()[q.id])).length;
+      return {
+        questions: pool,
+        mode: 'review',
+        title: '今日错题复习 · ' + pool.length + '题' + (dueN ? '（' + dueN + '题到期）' : ''),
+      };
     },
 
     /* 题目得分：越小越优先（未做过0 < 全错1 < 半对<2 < 全对≈2 < 已掌握10） */

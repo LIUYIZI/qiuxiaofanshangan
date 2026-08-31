@@ -66,7 +66,7 @@
       this.saveSubDone(done);
     },
 
-    /* 用户反馈历史 [{ date, type, tag, text }] */
+    /* 用户反馈历史 [{ date, type, tag, text }]（保留字段兼容旧数据；新提交 type='' ） */
     getFeedbacks() {
       try { return JSON.parse(localStorage.getItem('whteacher_feedback_v1')) || []; }
       catch (e) { return []; }
@@ -75,6 +75,105 @@
       const list = this.getFeedbacks();
       list.push(Object.assign({ date: Store.today(), ts: Date.now() }, fb));
       try { localStorage.setItem('whteacher_feedback_v1', JSON.stringify(list.slice(-50))); } catch (e) {}
+    },
+
+    /* 知识点"记住了"打卡 { 'KP-xx': 'YYYY-MM-DD' } */
+    getKpRemembered() {
+      try { return JSON.parse(localStorage.getItem('whteacher_kp_v1')) || {}; }
+      catch (e) { return {}; }
+    },
+    saveKpRemembered(map) {
+      try { localStorage.setItem('whteacher_kp_v1', JSON.stringify(map)); } catch (e) {}
+    },
+    recordKpRemembered(id) {
+      const map = this.getKpRemembered();
+      map[id] = Store.today();
+      this.saveKpRemembered(map);
+    },
+    /* 知识点学习打卡日期集合（学情用）：{ 'YYYY-MM-DD': n } */
+    kpStudyDays() {
+      const map = this.getKpRemembered();
+      const days = {};
+      Object.values(map).forEach(d => { days[d] = (days[d] || 0) + 1; });
+      return days;
+    },
+
+    /* ---------- 火苗（抖音聊天火苗规则） ---------- */
+    /* 最近一次刷题日期；无记录返回 '' */
+    lastStudyDate() {
+      const logs = this.getLogs();
+      if (!logs.length) return '';
+      const days = [...new Set(logs.map(l => l.date))].sort();
+      return days[days.length - 1];
+    },
+    /* 火苗是否"今天已续上"：今天刷过 → 实心火苗 */
+    fireActive() {
+      return this.lastStudyDate() === Store.today();
+    },
+    /* 火苗是否"断1天变灰"：昨天刷过、今天未刷 → 灰色火苗（再刷即恢复） */
+    fireDim() {
+      return !this.fireActive() && this.lastStudyDate() === Store.dateOffset(-1);
+    },
+
+    /* ---------- 错题复习（艾宾浩斯记忆曲线） ---------- */
+    REVIEW_NODES: [1, 2, 4, 7, 15],   // 错后第1/2/4/7/15天复习节点
+    /* 最后一次答错日期 */
+    lastWrongDate(rec) {
+      if (!rec) return '';
+      if (rec.hist && rec.hist.length) {
+        for (let i = rec.hist.length - 1; i >= 0; i--) {
+          if (rec.hist[i].ok === false) return rec.hist[i].d;
+        }
+      }
+      return rec.last || '';
+    },
+    /* 距上次答错的天数（>=0）；从未答错返回 -1 */
+    daysSinceLastWrong(rec) {
+      const d = this.lastWrongDate(rec);
+      if (!d) return -1;
+      const a = new Date(d + 'T00:00:00');
+      const b = new Date(Store.today() + 'T00:00:00');
+      return Math.floor((b - a) / 86400000);
+    },
+    /* 是否到期复习：距上次答错天数命中艾宾浩斯节点 */
+    reviewDue(rec) {
+      const days = this.daysSinceLastWrong(rec);
+      return days >= 1 && this.REVIEW_NODES.indexOf(days) >= 0;
+    },
+    /* 复习权重：到期+1000（优先）；错误次数×10；越久未复习越高（时间衰减，上限15） */
+    reviewWeight(rec) {
+      if (!rec || rec.wrong <= 0) return 0;
+      const days = this.daysSinceLastWrong(rec);
+      if (days < 0) return 0;
+      let w = rec.wrong * 10 + Math.min(Math.max(days, 0), 15);
+      if (this.reviewDue(rec)) w += 1000;
+      return w;
+    },
+    /* 全部错题记录（wrong>0），按复习权重降序 */
+    wrongRecords() {
+      const answers = this.getAnswers();
+      return Object.keys(answers)
+        .map(id => ({ id, rec: answers[id] }))
+        .filter(x => x.rec.wrong > 0)
+        .sort((a, b) => this.reviewWeight(b.rec) - this.reviewWeight(a.rec));
+    },
+
+    /* ---------- 周期聚合 ---------- */
+    /* 已出现过的周期编号列表（按日志顺序，去重，最新在后） */
+    cycleIds() {
+      const logs = this.getLogs();
+      const seen = [];
+      logs.forEach(l => {
+        if (l.mode && l.mode.indexOf('cycle:') === 0) {
+          const id = l.mode.slice(6);
+          if (seen.indexOf(id) < 0) seen.push(id);
+        }
+      });
+      return seen;
+    },
+    /* 某周期的测验日志 */
+    cycleLogs(id) {
+      return this.getLogs().filter(l => l.mode === 'cycle:' + id);
     },
 
     /* 连续打卡天数 */

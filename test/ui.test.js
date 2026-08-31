@@ -23,7 +23,7 @@ window.confirm = () => true;   // jsdom 默认 confirm 未实现，需注入
 window.alert = msg => { global.lastAlert = msg; };
 
 // 加载JS（按index.html顺序）
-const files = ['js/storage.js', 'js/config.js', 'data/emotion.js', 'js/bank.js', 'js/cycle.js', 'js/quiz.js', 'js/app.js'];
+const files = ['js/storage.js', 'js/config.js', 'data/emotion.js', 'js/bank.js', 'js/knowledge.js', 'js/cycle.js', 'js/quiz.js', 'js/app.js'];
 files.forEach(f => {
   const code = fs.readFileSync(path.join(site, f), 'utf8');
   window.eval(code);
@@ -146,6 +146,13 @@ function assert(name, cond, extra) {
   assert('app.js 含打卡分档语调用(带周期参数)', appSrc.includes('EMOTION.streakMsg(Store.getStreak()'));
   assert('app.js 含欢迎页陪伴语调用(带周期参数)', appSrc.includes("EMOTION.pick(isLazy ? 'lazy' : 'welcome', { cycleId"));
   assert('弹窗已移除：app.js 无退出确认confirm', !appSrc.includes("confirm('退出当前测验"));
+  const idxSrc = fs.readFileSync(path.join(site, 'index.html'), 'utf8');
+  assert('tab已改：知识点tab存在', idxSrc.includes('data-tab="knowledge"'));
+  assert('tab已改：无反馈tab', !idxSrc.includes('data-tab="feedback"'));
+  assert('index.html引入knowledge.js', idxSrc.includes('js/knowledge.js'));
+  assert('app.js含知识点页渲染', appSrc.includes('renderKnowledge'));
+  assert('app.js含今日错题复习组卷', appSrc.includes('drawTodayReview'));
+  assert('app.js含日历月份导航', appSrc.includes('calPrev') && appSrc.includes('shiftCal'));
 
   console.log('== 日志口径 ==');
   const logs = Store.getLogs();
@@ -192,35 +199,55 @@ function assert(name, cond, extra) {
   assert('周期结束不再显示开始刷题', !v.includes('开始今日刷题'));
   assert('周期结束引导去错题页', v.includes('btnMistakes2'));
 
-  console.log('== 统计页 ==');
+  console.log('== 统计页（第12轮：日历按月+双折线图+周期切换） ==');
   Quiz.current = null;
   App.show('stats');
   v = document.getElementById('view').innerHTML;
   assert('统计页显示总刷题量', v.includes('总刷题量'));
-  assert('统计页显示打卡日历', v.includes('calendar'));
+  assert('统计页显示练习日历', v.includes('练习日历') && v.includes('cal-nav'));
+  assert('统计页显示月份导航', v.includes('上月') && v.includes('下月'));
+  assert('统计页显示折线图1', v.includes('最近14次练习正确率'));
+  assert('统计页显示折线图2', v.includes('历史累计周期平均正确率'));
+  assert('统计页显示周期切换器', v.includes('cycle-switch') && v.includes('周期C1'));
   assert('统计页显示测验记录', v.includes('测验记录'));
 
-  console.log('== 反馈页 ==');
-  App.show('feedback');
+  console.log('== 首页反馈卡片（第12轮：不分类型） ==');
+  App.show('home');
   v = document.getElementById('view').innerHTML;
-  assert('反馈页含4种类型', ['知识点疑问', '想再练', '系统bug', '优化建议'].every(t => v.includes(t)));
-  const typeBtn = document.querySelector('.fb-type[data-type="疑问"]');
-  typeBtn.click();
+  assert('首页含反馈卡片', v.includes('反馈给辅导师'));
+  assert('反馈卡片无类型选择', !v.includes('fb-type') && !v.includes('fb-types'));
   const fbText = document.getElementById('fbText');
   fbText.value = '策略选择第3题解析看不懂';
   fbText.dispatchEvent(new window.Event('input'));
   const submitBtn = document.getElementById('fbSubmit');
-  assert('选择类型后提交按钮可用', !submitBtn.disabled);
+  assert('填写后提交按钮可用', !submitBtn.disabled);
   submitBtn.click();
   v = document.getElementById('view').innerHTML;
   assert('生成反馈结果', v.includes('已生成'));
   assert('反馈文本含内容', v.includes('策略选择第3题解析看不懂'));
-  assert('反馈历史已记录', v.includes('反馈历史（1）'));
 
-  console.log('== 错题页 ==');
+  console.log('== 知识点页（第12轮：学习卡片+记住了打卡） ==');
+  await window.KNOWLEDGE.load();
+  App.show('knowledge');
+  v = document.getElementById('view').innerHTML;
+  assert('知识点页标题与进度', v.includes('知识点学习') && v.includes('已记'));
+  assert('知识点卡片含分类行', v.includes('kp-cat') && v.includes('kp-study-card'));
+  assert('知识点卡片含名称', v.includes('kp-study-name'));
+  assert('记住了按钮存在', v.includes('kpRemember'));
+  assert('模块筛选chips存在', v.includes('kp-mod-chips'));
+  const rememberBtn = document.getElementById('kpRemember');
+  if (rememberBtn) {
+    rememberBtn.click();
+    assert('记住了已打卡', Object.keys(Store.getKpRemembered()).length >= 1);
+  }
+  const chip = document.querySelector('.kp-mod-chips .chip[data-kpmod="常识判断"]');
+  if (chip) { chip.click(); v = document.getElementById('view').innerHTML; assert('模块筛选生效', v.includes('常识判断')); }
+
+  console.log('== 今日错题复习页 ==');
   App.show('mistakes');
   v = document.getElementById('view').innerHTML;
-  assert('错题页有重刷按钮或空状态', v.includes('btnReDo') || v.includes('暂无待重刷错题'));
+  assert('错题页标题为今日错题复习', v.includes('今日错题复习'));
+  assert('错题页有复习按钮或空状态', v.includes('btnReDo') || v.includes('暂无错题'));
 
   console.log('== 打卡徽章 ==');
   const streak = document.getElementById('streakBadge').textContent;

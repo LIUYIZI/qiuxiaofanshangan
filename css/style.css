@@ -176,31 +176,32 @@ html, body {
 .option.dim { opacity: .55; }
 .option:disabled { cursor: default; }
 
-/* 解析区 */
+/* 解析区（第12轮：压缩行距） */
 .analysis-box {
-  margin-top: 6px; padding: 14px;
+  margin-top: 6px; padding: 10px 12px;
   background: #f8fafc; border-left: 4px solid var(--primary);
   border-radius: 0 10px 10px 0;
   font-size: 14px; color: #334155;
   white-space: pre-wrap; word-break: break-word;
 }
-.analysis-box .analysis-label { font-weight: 700; color: var(--primary-dark); margin-bottom: 4px; }
-.analysis-box .analysis-source { font-size: 12px; color: var(--text-light); margin-bottom: 6px; }
+.analysis-box .analysis-label { font-weight: 700; color: var(--primary-dark); margin-bottom: 2px; }
+.analysis-box .analysis-source { font-size: 12px; color: var(--text-light); margin-bottom: 4px; }
 
-/* 知识点区块（kp一句话 + kp_mix联想/易混） */
+/* 知识点区块（kp一句话 + kp_mix联想/易混；分类行与内容行分行，第12轮） */
 .kp-block {
-  margin: 8px 0 10px; padding: 10px 12px;
+  margin: 6px 0 8px; padding: 8px 12px;
   background: #fdf2f8; border: 1px solid #fbcfe8; border-radius: 10px;
-  font-size: 13px; line-height: 1.65; white-space: normal;
+  font-size: 13px; line-height: 1.5; white-space: normal;
 }
-.kp-block .kp-line { color: #9d174d; font-weight: 700; }
-.kp-block .kp-mix { margin-top: 4px; color: #475569; }
+.kp-block .kp-cat { font-size: 11px; color: #be185d; font-weight: 700; letter-spacing: .3px; }
+.kp-block .kp-line { color: #9d174d; font-weight: 700; margin-top: 2px; }
+.kp-block .kp-mix { margin-top: 2px; color: #475569; }
 .kp-block .kp-link { color: #6d28d9; }    /* 联想 · 淡紫 */
 .kp-block .kp-confuse { color: #b45309; } /* 易混 · 琥珀 */
 
 .answer-badge {
-  display: inline-block; margin-bottom: 8px;
-  padding: 4px 12px; border-radius: 999px;
+  display: inline-block; margin-bottom: 6px;
+  padding: 3px 12px; border-radius: 999px;
   font-size: 13px; font-weight: 700;
 }
 .answer-badge.ok { background: #dcfce7; color: #166534; }
@@ -263,16 +264,39 @@ html, body {
 
 /* ===== 统计页 ===== */
 .stat-total { display: flex; gap: 10px; margin-bottom: 14px; }
-.calendar {
-  display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
-  margin-bottom: 14px;
-}
+.cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.cal-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 4px; font-size: 11px; color: var(--text-light); text-align: center; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.calendar { margin-bottom: 14px; }
 .calendar .day {
-  aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
   background: #f8fafc; border-radius: 8px; font-size: 11px; color: var(--text-light);
 }
+.calendar .day.blank { background: transparent; }
 .calendar .day.done { background: #dcfce7; color: #166534; font-weight: 700; }
+.calendar .day.done.low { background: #fee2e2; color: #991b1b; }
 .calendar .day.today { border: 2px solid var(--primary); }
+.calendar .day-rate { font-size: 9px; font-weight: 400; }
+
+/* 通用 chips（周期切换器 / 知识点模块筛选 / 日历月份导航） */
+.chip {
+  border: 2px solid var(--border); background: #fff;
+  border-radius: 999px; padding: 6px 12px; font-size: 13px;
+  color: var(--text); cursor: pointer; white-space: nowrap;
+}
+.chip.active { border-color: var(--primary); background: var(--primary-soft); color: var(--primary-dark); font-weight: 700; }
+.cycle-switch { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+
+/* 火苗（抖音聊天火苗规则：断1天变灰，第12轮） */
+.streak.dim { opacity: .45; filter: grayscale(.8); }
+
+/* ===== 知识点页（第12轮） ===== */
+.kp-mod-chips { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 10px; padding-bottom: 4px; }
+.kp-study-card { padding: 14px; }
+.kp-study-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.kp-study-name { font-size: 18px; font-weight: 800; color: var(--primary-dark); margin: 6px 0; line-height: 1.4; }
+.kp-study-summary { font-size: 14px; color: #334155; line-height: 1.6; }
+.kp-done-msg { margin-top: 10px; font-size: 13px; color: var(--success); font-weight: 600; }
 
 /* ===== 周期制展示（首页） ===== */
 .cycle-banner {

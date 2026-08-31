@@ -82,11 +82,12 @@ function assert(name, cond, extra) {
   assert('作答记录已保存', Object.keys(answers).length === 20, Object.keys(answers).length);
   assert('错题1道', wrongIds.length === 1, wrongIds.length);
 
-  console.log('== 抽题：错题重刷 ==');
-  const mistakes = await Quiz.drawMistakes();
-  assert('错题重刷含1道错题', mistakes.questions.length === 1, mistakes.questions.length);
+  console.log('== 抽题：今日错题复习（第12轮） ==');
+  const mistakes = await Quiz.drawTodayReview();
+  assert('错题复习含错题', mistakes.questions.length >= 1, mistakes.questions.length);
+  assert('复习模式mode=review', mistakes.mode === 'review', mistakes.mode);
   const ids = mistakes.questions.map(q => q.id);
-  wrongIds.forEach(w => assert('错题 ' + w + ' 在重刷列表中', ids.includes(w)));
+  wrongIds.forEach(w => assert('错题 ' + w + ' 在复习列表中', ids.includes(w)));
 
   console.log('== 抽题：已掌握降权（答对2次的题不应优先） ==');
   const goodQ = cycle.questions.find(q => !wrongIds.includes(q.id));
@@ -130,6 +131,45 @@ function assert(name, cond, extra) {
   console.log('== 打卡统计 ==');
   Store.recordQuiz({ mode: 'cycle:C1', title: 'C1周期 · 第1天', total: 2, answered: 2, correct: 1, rate: 50 });
   assert('打卡天数=1', Store.getStreak() === 1, Store.getStreak());
+
+  console.log('== 火苗（第12轮·抖音聊天火苗规则） ==');
+  assert('今天有日志→fireActive', Store.fireActive());
+  assert('今天刷过→非fireDim', !Store.fireDim());
+  /* 模拟断1天：把最后一条日志日期改到昨天 */
+  const logs1 = Store.getLogs();
+  const last = logs1[logs1.length - 1];
+  const origDate = last.date;
+  last.date = Store.dateOffset(-1);
+  Store.saveLogs(logs1);
+  assert('断1天→fireDim', Store.fireDim());
+  assert('断1天→连续天数保留', Store.getStreak() >= 1);
+  last.date = origDate;
+  Store.saveLogs(logs1);
+  assert('恢复后fireActive', Store.fireActive());
+
+  console.log('== 知识点打卡（第12轮） ==');
+  Store.recordKpRemembered('KP-CS01');
+  assert('记住了已记录', Store.getKpRemembered()['KP-CS01'] === Store.today());
+  assert('学习打卡日期统计', Store.kpStudyDays()[Store.today()] >= 1);
+
+  console.log('== 错题复习权重（第12轮·艾宾浩斯 1/2/4/7/15） ==');
+  const wrongRec = Object.values(Store.getAnswers()).find(r => r.wrong > 0);
+  assert('有错题记录', !!wrongRec);
+  assert('daysSinceLastWrong>=0', Store.daysSinceLastWrong(wrongRec) >= 0);
+  const mk = (wrong, daysAgo) => ({ wrong, hist: [{ d: Store.dateOffset(-daysAgo), ok: false }], last: Store.dateOffset(-daysAgo) });
+  assert('当天错→未到期', !Store.reviewDue(mk(1, 0)));
+  assert('错后1天→到期', Store.reviewDue(mk(1, 1)));
+  assert('错后2天→到期', Store.reviewDue(mk(1, 2)));
+  assert('错后3天→未到期', !Store.reviewDue(mk(1, 3)));
+  assert('错后15天→到期', Store.reviewDue(mk(1, 15)));
+  assert('到期权重>未到期', Store.reviewWeight(mk(1, 1)) > Store.reviewWeight(mk(1, 3)));
+  assert('错2次权重>错1次', Store.reviewWeight(mk(2, 3)) > Store.reviewWeight(mk(1, 3)));
+  assert('wrongRecords按权重降序', Store.wrongRecords().length >= 1);
+
+  console.log('== 周期聚合（第12轮） ==');
+  assert('cycleIds含C1', Store.cycleIds().includes('C1'));
+  assert('cycleLogs(C1)非空', Store.cycleLogs('C1').length >= 1);
+  assert('cycleLogs(C9)空', Store.cycleLogs('C9').length === 0);
 
   console.log('== 情绪语库（老公角色） ==');
   const EM = global.EMOTION;
