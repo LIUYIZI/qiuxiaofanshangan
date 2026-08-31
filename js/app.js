@@ -27,16 +27,15 @@
     bindTabs() {
       document.querySelectorAll('.tab').forEach(t => {
         t.addEventListener('click', () => {
-          if (Quiz.current && !Quiz.current.done && !confirm('退出当前测验？')) return;
+          if (Quiz.current && !Quiz.current.done) Quiz.current = null;  // 放弃当前测验不弹窗（已答记录已实时保存）
           this.show(t.dataset.tab);
         });
       });
     },
     bindBrand() {
       document.getElementById('brandBtn').addEventListener('click', () => {
-        if (Quiz.current && !Quiz.current.done) {
-          if (confirm('退出当前测验？作答记录将保留。')) { Quiz.current = null; this.show('home'); }
-        } else this.show('home');
+        if (Quiz.current && !Quiz.current.done) Quiz.current = null;  // 放弃当前测验不弹窗
+        this.show('home');
       });
     },
 
@@ -209,7 +208,7 @@
           </select>
           <button class="btn-sec" id="fbPractice" style="margin-top:8px;">▶ 直接开始练习该知识点</button>`;
         document.getElementById('fbPractice').addEventListener('click', async () => {
-          if (Quiz.current && !Quiz.current.done && !confirm('退出当前测验？')) return;
+          if (Quiz.current && !Quiz.current.done) Quiz.current = null;  // 放弃当前测验不弹窗
           const tag = document.getElementById('fbTag').value;
           const qs = Bank.questions.filter(q => !q.isSubjective && (q.tag || q.module) === tag);
           if (qs.length) Quiz.start({ questions: qs, mode: 'tag:' + tag, title: tag + ' · 针对性练习' });

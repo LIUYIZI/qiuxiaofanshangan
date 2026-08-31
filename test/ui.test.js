@@ -42,7 +42,7 @@ function assert(name, cond, extra) {
   /* 称谓归一化：模板{name}与渲染后的具体称谓统一为"小凡"比较 */
   const normAny = s => String(s).replace(/\{name\}|老婆|凡姐|凡宝|宝贝/g, '小凡');
 
-  console.log('== 首页渲染（周期制欢迎页 · 题单每天2题） ==');
+  console.log('== 首页渲染（周期制欢迎页 · 题单每天20题） ==');
   App.show('home');
   await Promise.all([Bank.load(), window.Cycle.load()]);
   await new Promise(r => setTimeout(r, 100));
@@ -51,7 +51,7 @@ function assert(name, cond, extra) {
   assert('首页含周期C1', htmlOut.includes('周期 C1'));
   assert('首页含3天分组', htmlOut.includes('第1天') && htmlOut.includes('第2天') && htmlOut.includes('第3天'));
   assert('首页含开始今日刷题', htmlOut.includes('开始今日刷题'));
-  assert('首页显示每天2题', htmlOut.includes('每天2题'));
+  assert('首页显示每天20题', htmlOut.includes('每天20题'));
   assert('首页不含练习模式', !htmlOut.includes('练习模式'));
   assert('首页不含搜索框', !htmlOut.includes('searchInput') && !htmlOut.includes('搜索题库'));
   assert('已刷/题库数量展示', htmlOut.includes('已刷') && htmlOut.includes('题库'));
@@ -145,6 +145,7 @@ function assert(name, cond, extra) {
   assert('app.js 含每日首刷语调用(带周期参数)', appSrc.includes("EMOTION.pick('dailyStart', { cycleId"));
   assert('app.js 含打卡分档语调用(带周期参数)', appSrc.includes('EMOTION.streakMsg(Store.getStreak()'));
   assert('app.js 含欢迎页陪伴语调用(带周期参数)', appSrc.includes("EMOTION.pick(isLazy ? 'lazy' : 'welcome', { cycleId"));
+  assert('弹窗已移除：app.js 无退出确认confirm', !appSrc.includes("confirm('退出当前测验"));
 
   console.log('== 日志口径 ==');
   const logs = Store.getLogs();
