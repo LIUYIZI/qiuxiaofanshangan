@@ -113,10 +113,12 @@
           <h1>🌸 球小凡上岸！</h1>
           <p>${CONFIG.site.target}</p>
           <p style="margin-top:6px;font-size:13px;color:var(--text-light);">距考试约 <b>${this.daysToExam()}</b> 天 · 连续打卡 ${streak} 天</p>
+          <div class="husband-msg">💗 ${EMOTION.pick('welcome')}</div>
           ${cycleCard}
           <div class="cycle-groups">${groupCards}</div>
           ${cycleOver ? `
           <button class="btn-main" id="btnMistakes2" style="background:var(--accent);box-shadow:0 4px 14px rgba(167,139,250,.35);">📕 去错题页重刷</button>` : `
+          <div id="startMsg" class="start-msg"></div>
           <button class="btn-main" id="btnDaily">${todayDone ? '✅ 今日已完成 · 查看统计' : '🚀 开始今日刷题（第' + showDay + '组）'}</button>
           <button class="btn-sec" id="btnMistakes">📕 错题重刷</button>`}
         </div>
@@ -131,7 +133,11 @@
       if (btnM2) btnM2.addEventListener('click', () => this.show('mistakes'));
       document.getElementById('btnDaily') && document.getElementById('btnDaily').addEventListener('click', async () => {
         if (todayDone) { this.show('stats'); return; }
-        document.getElementById('btnDaily').textContent = '组卷中…';
+        const btn = document.getElementById('btnDaily');
+        const msg = document.getElementById('startMsg');
+        if (msg) msg.innerHTML = '💗 ' + EMOTION.pick('dailyStart');
+        btn.textContent = '组卷中…';
+        btn.disabled = true;
         const cfg = await Quiz.drawCycle();
         if (!cfg.questions.length) { alert('题库暂时无法组卷，请稍后再试（或检查网络/服务器）'); this.renderHome(); return; }
         Quiz.start(cfg);
@@ -400,6 +406,11 @@
           <div class="kpi"><div class="kpi-num" style="color:var(--primary);">${log.answered}</div><div class="kpi-label">已作答</div></div>
           <div class="kpi"><div class="kpi-num" style="color:var(--success);">${correct}</div><div class="kpi-label">答对</div></div>
           <div class="kpi"><div class="kpi-num" style="color:${weak.length ? 'var(--danger)' : 'var(--success)'};">${weak.length}</div><div class="kpi-label">薄弱点</div></div>
+        </div>
+        <div class="card hus-card">
+          <div class="hus-title">❤️ 老公的鼓励</div>
+          <div class="hus-text">${EMOTION.streakMsg(Store.getStreak())}</div>
+          <div class="hus-sub">${EMOTION.pick('done')}</div>
         </div>
         <div class="card">
           <div class="section-title" style="margin-top:0;">📊 知识点掌握度</div>

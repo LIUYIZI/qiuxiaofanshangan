@@ -23,7 +23,7 @@ window.confirm = () => true;   // jsdom 默认 confirm 未实现，需注入
 window.alert = msg => { global.lastAlert = msg; };
 
 // 加载JS（按index.html顺序）
-const files = ['js/storage.js', 'js/config.js', 'js/bank.js', 'js/cycle.js', 'js/quiz.js', 'js/app.js'];
+const files = ['js/storage.js', 'js/config.js', 'data/emotion.js', 'js/bank.js', 'js/cycle.js', 'js/quiz.js', 'js/app.js'];
 files.forEach(f => {
   const code = fs.readFileSync(path.join(site, f), 'utf8');
   window.eval(code);
@@ -37,6 +37,8 @@ function assert(name, cond, extra) {
 
 (async () => {
   const { App, Quiz, Bank, Store } = window;
+  const EM = window.EMOTION;
+  const allStreakMsgs = [...EM.streak.other, ...EM.streak[3], ...EM.streak[7], ...EM.streak[14]];
 
   console.log('== 首页渲染（周期制欢迎页 · 题单每天2题） ==');
   App.show('home');
@@ -51,6 +53,11 @@ function assert(name, cond, extra) {
   assert('首页不含练习模式', !htmlOut.includes('练习模式'));
   assert('首页不含搜索框', !htmlOut.includes('searchInput') && !htmlOut.includes('搜索题库'));
   assert('已刷/题库数量展示', htmlOut.includes('已刷') && htmlOut.includes('题库'));
+
+  console.log('== 情绪语库UI：欢迎页老公陪伴语 ==');
+  assert('欢迎页含老公陪伴语容器', htmlOut.includes('husband-msg'));
+  assert('欢迎页老公语来自welcome语料', EM.welcome.some(s => htmlOut.includes(s)));
+  assert('每日首刷语容器存在', !!document.getElementById('startMsg'));
 
   console.log('== 启动周期当日测验 ==');
   const cfg = await Quiz.drawCycle();
@@ -109,6 +116,17 @@ function assert(name, cond, extra) {
   assert('结束页显示正确率', v.includes('%'));
   assert('结束页显示知识点掌握度', v.includes('知识点掌握度'));
   assert('结束页有返回首页按钮', v.includes('btnHome'));
+
+  console.log('== 情绪语库UI：结束页老公打卡鼓励 ==');
+  assert('结束页含老公鼓励卡片', v.includes('hus-card') && v.includes('老公的鼓励'));
+  assert('结束页分档语来自语料', allStreakMsgs.some(s => v.includes(s)));
+  assert('结束页刷完语来自语料', EM.done.some(s => v.includes(s)));
+
+  console.log('== 情绪语库UI：静态防回归 ==');
+  const appSrc = fs.readFileSync(path.join(site, 'js/app.js'), 'utf8');
+  assert('app.js 含每日首刷语调用', appSrc.includes("EMOTION.pick('dailyStart')"));
+  assert('app.js 含打卡分档语调用', appSrc.includes('EMOTION.streakMsg'));
+  assert('app.js 含欢迎页陪伴语调用', appSrc.includes("EMOTION.pick('welcome')"));
 
   console.log('== 日志口径 ==');
   const logs = Store.getLogs();

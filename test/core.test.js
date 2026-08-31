@@ -26,6 +26,7 @@ global.alert = () => {};
 // ---- 加载模块 ----
 require('../js/storage.js');
 require('../js/config.js');
+require('../data/emotion.js');
 require('../js/bank.js');
 require('../js/cycle.js');
 require('../js/quiz.js');
@@ -129,6 +130,31 @@ function assert(name, cond, extra) {
   console.log('== 打卡统计 ==');
   Store.recordQuiz({ mode: 'cycle:C1', title: 'C1周期 · 第1天', total: 2, answered: 2, correct: 1, rate: 50 });
   assert('打卡天数=1', Store.getStreak() === 1, Store.getStreak());
+
+  console.log('== 情绪语库（老公角色） ==');
+  const EM = global.EMOTION;
+  assert('welcome语料5条', EM.welcome.length === 5, EM.welcome.length);
+  assert('dailyStart语料5条', EM.dailyStart.length === 5, EM.dailyStart.length);
+  assert('done语料5条', EM.done.length === 5, EM.done.length);
+  assert('打卡分档3/7/14各3条', EM.streak[3].length === 3 && EM.streak[7].length === 3 && EM.streak[14].length === 3);
+  assert('打卡其他档3条', EM.streak.other.length === 3, EM.streak.other.length);
+  assert('pick(welcome) 在语料内', EM.welcome.includes(EM.pick('welcome')));
+  assert('pick(dailyStart) 在语料内', EM.dailyStart.includes(EM.pick('dailyStart')));
+  assert('pick(done) 在语料内', EM.done.includes(EM.pick('done')));
+  // 分档选择：未达里程碑用 other，达到用对应档，区间内用上一档
+  assert('0天→其他档', EM.streak.other.includes(EM.streakMsg(0)));
+  assert('2天→其他档', EM.streak.other.includes(EM.streakMsg(2)));
+  assert('3天→3天档', EM.streak[3].includes(EM.streakMsg(3)));
+  assert('5天→3天档（未到7）', EM.streak[3].includes(EM.streakMsg(5)));
+  assert('7天→7天档', EM.streak[7].includes(EM.streakMsg(7)));
+  assert('13天→7天档', EM.streak[7].includes(EM.streakMsg(13)));
+  assert('14天→14天档', EM.streak[14].includes(EM.streakMsg(14)));
+  assert('20天→14天档', EM.streak[14].includes(EM.streakMsg(20)));
+  // 语料质量：全部短句、不含图片引用
+  const allMsgs = [...EM.welcome, ...EM.dailyStart, ...EM.done, ...EM.streak[3], ...EM.streak[7], ...EM.streak[14], ...EM.streak.other];
+  assert('全部语料短句≤30字', allMsgs.every(s => s.length <= 30), allMsgs.filter(s => s.length > 30));
+  assert('语料不含图片引用', !JSON.stringify(allMsgs).match(/<img|\.png|\.jpg/i));
+  assert('老公角色自称贯穿', allMsgs.filter(s => s.indexOf('老公') >= 0).length >= 8, allMsgs.filter(s => s.indexOf('老公') >= 0).length);
 
   console.log('\n结果: ' + pass + ' 通过, ' + fail + ' 失败');
   process.exit(fail ? 1 : 0);

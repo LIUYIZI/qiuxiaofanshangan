@@ -80,6 +80,29 @@ html, body {
 .hero h1 { font-size: 22px; margin-bottom: 6px; }
 .hero p { color: var(--text-light); font-size: 14px; }
 
+/* 老公陪伴语（欢迎页） */
+.husband-msg {
+  margin-top: 12px; padding: 10px 14px;
+  background: var(--primary-soft);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 14px; color: var(--primary-dark); font-weight: 600;
+}
+/* 每日首刷鼓励语（组卷前展示） */
+.start-msg {
+  margin-top: 12px; padding: 8px 12px;
+  background: #fdf4ff;
+  border: 1px dashed var(--accent);
+  border-radius: 12px;
+  font-size: 14px; color: var(--accent); font-weight: 600;
+  min-height: 0; transition: min-height .2s;
+}
+/* 结束页老公鼓励卡片 */
+.hus-card { background: var(--primary-soft); border: 1px solid var(--border); }
+.hus-card .hus-title { font-size: 13px; font-weight: 700; color: var(--primary-dark); }
+.hus-card .hus-text { font-size: 15px; font-weight: 700; color: var(--primary); margin-top: 6px; }
+.hus-card .hus-sub { font-size: 12px; color: var(--text-light); margin-top: 4px; }
+
 .btn-main {
   display: block; width: 100%;
   background: var(--primary); color: #fff;
