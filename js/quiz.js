@@ -2,13 +2,25 @@
 (function (global) {
   const Quiz = {
     current: null,       // { questions, mode, title, idx, answers:[] }
-    touchX: null,
 
     /* ---------- 抽题 ---------- */
 
-    /* 按模块权重 + 薄弱点加权抽取今日测验 */
-    async drawDaily() {
+    /* 周期当日测验：优先使用培训师题单（cycle-C1.json 按天取题），无题单则按模块权重动态抽题 */
+    async drawCycle() {
       await Bank.load();
+      await Cycle.load();
+      const cycle = Store.getCycle() || { id: CONFIG.cycle.id, start: Store.today(), dayDone: {} };
+      const day = Store.cycleDay(cycle);
+      const cfg = Cycle.cfg();
+      const perDay = Math.max(1, Math.round(cfg.total / cfg.days));
+
+      /* 题单优先：当天有固定题 → 直接返回 */
+      const planned = Cycle.questionsForDay(day);
+      if (planned.length) {
+        return { questions: planned, mode: 'cycle:' + cycle.id, title: cycle.id + '周期 · 第' + Math.min(day, cfg.days) + '天', fromPlan: true };
+      }
+
+      /* 回退：动态抽题（无题单或当天题单缺失） */
       const all = Bank.questions;
       const answers = Store.getAnswers();
       const seen = Store.getSeen();
@@ -18,8 +30,8 @@
       const byModule = {};
       pool.forEach(q => { (byModule[q.module] = byModule[q.module] || []).push(q); });
 
-      /* 按权重分配题量（最大余数法，保证客观题总数 = daily.objective） */
-      const total = CONFIG.daily.objective;
+      /* 按权重分配当日题量（最大余数法，保证总数 = 每日目标题量） */
+      const total = perDay;
       const weightSum = Object.keys(CONFIG.moduleWeight).reduce((s, m) => s + CONFIG.moduleWeight[m], 0);
       const counts = {};
       const fracs = [];
@@ -55,14 +67,14 @@
       const rest = pool
         .filter(q => !picked.includes(q))
         .sort((a, b) => this._score(a, answers, seen) - this._score(b, answers, seen));
-      let deficit = CONFIG.daily.objective - picked.length;
+      let deficit = total - picked.length;
       while (deficit > 0 && rest.length) {
         picked.push(rest.shift());
         deficit--;
       }
 
-      /* 综应主观题：按配置取作答次数最少的 */
-      const subN = CONFIG.daily.subjective || 1;
+      /* 周期内主观题：按配置取作答次数最少的（开始阶段为0） */
+      const subN = cfg.subjective || 0;
       const subs = Bank.subjective()
         .slice()
         .sort((a, b) => {
@@ -72,17 +84,7 @@
       const questions = [...picked];
       for (let i = 0; i < subN && i < subs.length; i++) questions.push(subs[i]);
 
-      return { questions, mode: 'daily', title: '今日测验 · ' + Store.today() };
-    },
-
-    /* 模块练习抽题 */
-    async drawModule(moduleName, count) {
-      await Bank.load();
-      const answers = Store.getAnswers();
-      const pool = Bank.byModule(moduleName);
-      pool.sort((a, b) => this._score(a, answers, {}) - this._score(b, answers, {}));
-      const n = Math.min(count || pool.length, pool.length);
-      return { questions: pool.slice(0, n), mode: 'module:' + moduleName, title: moduleName + ' · 专项练习' };
+      return { questions, mode: 'cycle:' + cycle.id, title: cycle.id + '周期 · 第' + Math.min(day, cfg.days) + '天' };
     },
 
     /* 错题重刷 */
@@ -160,6 +162,13 @@
         subjective: c.questions.filter(q => q.isSubjective).length,
       };
       Store.recordQuiz(log);
+      /* 周期进度：记录当天已完成刷题（仅周期测验且有实际作答时） */
+      if (c.mode && c.mode.indexOf('cycle:') === 0 && results.length > 0) {
+        const cycle = Store.getCycle() || { id: CONFIG.cycle.id, start: Store.today(), dayDone: {} };
+        cycle.dayDone = cycle.dayDone || {};
+        cycle.dayDone[Store.today()] = (cycle.dayDone[Store.today()] || 0) + 1;
+        Store.saveCycle(cycle);
+      }
       this.markSeen(c.questions);
       App.renderResult(log);
     },

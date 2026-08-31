@@ -9,8 +9,50 @@
     'data/bank-职测D-言语理解-01.json',
     'data/bank-职测D-常识判断-01.json',
     'data/bank-职测D-数量分析-01.json',
+    'data/bank-职测D-常识判断-202603.json',
+    'data/bank-职测D-言语理解-202603.json',
+    'data/bank-职测D-数量分析-202603.json',
+    'data/bank-职测D-判断推理-202603.json',
+    'data/bank-职测D-策略选择-202603.json',
+    'data/bank-职测D-常识判断-202510.json',
+    'data/bank-职测D-言语理解-202510.json',
+    'data/bank-职测D-数量分析-202510.json',
+    'data/bank-职测D-判断推理-202510.json',
+    'data/bank-职测D-策略选择-202510.json',
+    'data/bank-职测D-常识判断-202503.json',
+    'data/bank-职测D-言语理解-202503.json',
+    'data/bank-职测D-数量分析-202503.json',
+    'data/bank-职测D-判断推理-202503.json',
+    'data/bank-职测D-策略选择-202503.json',
     'data/bank-综应D-主观题-01.json',
-    'data/bank-综应D-主观题-02.json'
+    'data/bank-综应D-主观题-02.json',
+    'data/bank-综应D-主观题-中学-20181025.json',
+    'data/bank-综应D-主观题-中学-20190522.json',
+    'data/bank-综应D-主观题-中学-20191025.json',
+    'data/bank-综应D-主观题-中学-20200725.json',
+    'data/bank-综应D-主观题-中学-20210522.json',
+    'data/bank-综应D-主观题-中学-20220522.json',
+    'data/bank-综应D-主观题-中学-20220917.json',
+    'data/bank-综应D-主观题-中学-20230522.json',
+    'data/bank-综应D-主观题-中学-20230826.json',
+    'data/bank-综应D-主观题-中学-20240329.json',
+    'data/bank-综应D-主观题-中学-20241102.json',
+    'data/bank-综应D-主观题-中学-20250329.json',
+    'data/bank-综应D-主观题-中学-20251025.json',
+    'data/bank-综应D-主观题-小学-20180522.json',
+    'data/bank-综应D-主观题-小学-20190522.json',
+    'data/bank-综应D-主观题-小学-20191025.json',
+    'data/bank-综应D-主观题-小学-20200725.json',
+    'data/bank-综应D-主观题-小学-20210522.json',
+    'data/bank-综应D-主观题-小学-20220522.json',
+    'data/bank-综应D-主观题-小学-20220917.json',
+    'data/bank-综应D-主观题-小学-20230522.json',
+    'data/bank-综应D-主观题-小学-20230826.json',
+    'data/bank-综应D-主观题-小学-20240329.json',
+    'data/bank-综应D-主观题-小学-20241102.json',
+    'data/bank-综应D-主观题-小学-20250329.json',
+    'data/bank-综应D-主观题-小学-20251025.json',
+    'data/bank-综应D-主观题-小学-20260329.json'
   ];
 
   const Bank = {
@@ -45,7 +87,7 @@
       return this.loadPromise;
     },
 
-    /* 按模块取题 */
+    /* 按模块取题（内部使用） */
     byModule(moduleName) {
       return this.questions.filter(q => q.module === moduleName && !q.isSubjective);
     },

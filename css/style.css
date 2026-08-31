@@ -1,17 +1,19 @@
-/* ===== 武汉教师D类刷题站 · 样式 ===== */
+/* ===== 武汉教师D类刷题站 · 样式（粉色主题） ===== */
 :root {
-  --primary: #2563eb;
-  --primary-dark: #1d4ed8;
+  --primary: #ec4899;        /* 浅粉主色 */
+  --primary-dark: #be185d;   /* 深粉 */
+  --primary-soft: #fdf2f8;   /* 极浅粉底 */
+  --accent: #a78bfa;         /* 淡紫点缀 */
   --success: #16a34a;
   --danger: #dc2626;
   --warning: #d97706;
-  --bg: #f1f5f9;
+  --bg: #fdf2f8;             /* 奶白粉底 */
   --card: #ffffff;
-  --text: #1e293b;
-  --text-light: #64748b;
-  --border: #e2e8f0;
+  --text: #3f2d38;
+  --text-light: #a48a98;
+  --border: #f3dce8;
   --radius: 16px;
-  --shadow: 0 2px 12px rgba(30, 41, 59, .08);
+  --shadow: 0 2px 12px rgba(236, 72, 153, .10);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -30,7 +32,7 @@ html, body {
   position: fixed; top: 0; left: 0; right: 0; z-index: 100;
   background: var(--primary);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, .3);
+  box-shadow: 0 2px 8px rgba(236, 72, 153, .3);
 }
 .topbar-inner {
   max-width: 640px; margin: 0 auto;
@@ -84,10 +86,10 @@ html, body {
   border: none; border-radius: 14px;
   padding: 15px 0; font-size: 17px; font-weight: 700;
   cursor: pointer; margin-top: 14px;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, .35);
+  box-shadow: 0 4px 14px rgba(236, 72, 153, .35);
 }
 .btn-main:active { transform: scale(.98); }
-.btn-main:disabled { background: #94a3b8; box-shadow: none; }
+.btn-main:disabled { background: #f9a8d4; box-shadow: none; }
 
 .btn-sec {
   display: block; width: 100%;
@@ -96,7 +98,7 @@ html, body {
   padding: 12px 0; font-size: 15px; font-weight: 600;
   cursor: pointer; margin-top: 10px;
 }
-.btn-sec:active { background: #eff6ff; }
+.btn-sec:active { background: var(--primary-soft); }
 
 .menu-list { list-style: none; }
 .menu-list li {
@@ -106,7 +108,6 @@ html, body {
   cursor: pointer;
 }
 .menu-list li:last-child { border-bottom: none; }
-.menu-list .menu-emoji { font-size: 24px; }
 .menu-list .menu-title { font-weight: 600; font-size: 15px; }
 .menu-list .menu-sub { font-size: 12px; color: var(--text-light); }
 .menu-list .menu-arrow { margin-left: auto; color: var(--text-light); }
@@ -121,7 +122,7 @@ html, body {
 .quiz-progress { font-size: 14px; font-weight: 700; color: var(--primary); }
 .quiz-tag {
   font-size: 11px; padding: 3px 10px; border-radius: 999px;
-  background: #eff6ff; color: var(--primary-dark); font-weight: 600;
+  background: var(--primary-soft); color: var(--primary-dark); font-weight: 600;
 }
 .quiz-tag.obj { background: #f0fdf4; color: var(--success); }
 .quiz-tag.sub { background: #fef3c7; color: #92400e; }
@@ -187,9 +188,9 @@ html, body {
   border: none; border-radius: 12px;
   font-size: 15px; font-weight: 700; cursor: pointer;
 }
-.btn-prev { background: #e2e8f0; color: #334155; }
+.btn-prev { background: #f3dce8; color: #6b4a5a; }
 .btn-next { background: var(--primary); color: #fff; }
-.btn-next:disabled { background: #94a3b8; }
+.btn-next:disabled { background: #f9a8d4; }
 .btn-reveal { background: var(--warning); color: #fff; }
 
 .hint { text-align: center; color: var(--text-light); font-size: 12px; margin-top: 8px; }
@@ -239,6 +240,32 @@ html, body {
 .calendar .day.done { background: #dcfce7; color: #166534; font-weight: 700; }
 .calendar .day.today { border: 2px solid var(--primary); }
 
+/* ===== 周期制展示（首页） ===== */
+.cycle-banner {
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  margin: 12px 0 6px;
+}
+.cycle-banner-id {
+  background: var(--primary); color: #fff;
+  padding: 4px 14px; border-radius: 999px;
+  font-size: 14px; font-weight: 700;
+}
+.cycle-banner-progress { font-size: 14px; color: var(--primary-dark); font-weight: 600; }
+
+.cycle-groups { display: flex; gap: 8px; margin: 10px 0 4px; }
+.cycle-day {
+  flex: 1; text-align: center;
+  background: var(--primary-soft);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 8px 4px;
+}
+.cycle-day.today { border-color: var(--primary); background: #fff; box-shadow: var(--shadow); }
+.cycle-day.done { opacity: .55; }
+.cycle-day-label { font-size: 13px; font-weight: 700; color: var(--text); }
+.cycle-day-count { font-size: 12px; color: var(--primary-dark); margin-top: 2px; }
+.cycle-day-state { font-size: 11px; color: var(--accent); margin-top: 2px; min-height: 16px; }
+
 /* ===== 空状态 ===== */
 .empty { text-align: center; padding: 40px 0; color: var(--text-light); }
 .empty .empty-emoji { font-size: 40px; margin-bottom: 10px; }
@@ -252,31 +279,9 @@ html, body {
 @keyframes slideRight { from { opacity: .4; transform: translateX(-60px); } to { opacity: 1; transform: none; } }
 
 @media (min-width: 640px) {
-  body { background: #e2e8f0; }
+  body { background: #fbe4ef; }
   .view { padding-top: 72px; }
 }
-
-/* ===== 搜索 ===== */
-.search-input {
-  width: 100%;
-  border: 2px solid var(--border); border-radius: 12px;
-  padding: 11px 14px; font-size: 15px; font-family: inherit;
-  background: #f8fafc;
-}
-.search-input:focus { outline: none; border-color: var(--primary); background: #fff; }
-.search-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-.chip {
-  border: 1.5px solid var(--border); background: #f8fafc;
-  border-radius: 999px; padding: 4px 12px; font-size: 12px;
-  color: var(--text-light); cursor: pointer;
-}
-.chip.active { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 600; }
-.search-item {
-  border-bottom: 1px solid var(--border); padding: 10px 2px; cursor: pointer;
-}
-.search-item:last-child { border-bottom: none; }
-.search-item-head { display: flex; align-items: center; margin-bottom: 4px; }
-.search-item-stem { font-size: 14px; color: #334155; }
 
 /* ===== 反馈页 ===== */
 .fb-types { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -285,7 +290,7 @@ html, body {
   border-radius: 12px; padding: 12px 6px; font-size: 14px;
   color: var(--text); cursor: pointer; font-weight: 600;
 }
-.fb-type.active { border-color: var(--primary); background: #eff6ff; color: var(--primary-dark); }
+.fb-type.active { border-color: var(--primary); background: var(--primary-soft); color: var(--primary-dark); }
 .fb-text {
   width: 100%; min-height: 90px; margin-top: 12px;
   border: 2px solid var(--border); border-radius: 12px;
@@ -298,7 +303,7 @@ html, body {
   padding: 10px 12px; font-size: 14px; background: #fff;
 }
 .fb-out {
-  background: #0f172a; color: #e2e8f0;
+  background: #3f2d38; color: #fbe4ef;
   border-radius: 10px; padding: 12px; margin: 8px 0;
   font-size: 13px; white-space: pre-wrap; word-break: break-all;
   font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;

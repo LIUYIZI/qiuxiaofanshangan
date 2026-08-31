@@ -10,7 +10,7 @@
       this.bindBrand();
       this.bindSwipe();
       this.show('home');
-      Bank.load().then(() => this.renderHome()).catch(() => {});
+      Promise.all([Bank.load(), Cycle.load()]).then(() => this.renderHome()).catch(() => {});
     },
 
     show(name) {
@@ -19,7 +19,6 @@
         t.classList.toggle('active', t.dataset.tab === name);
       });
       if (name === 'home') this.renderHome();
-      else if (name === 'practice') this.renderPractice();
       else if (name === 'mistakes') this.renderMistakes();
       else if (name === 'feedback') this.renderFeedback();
       else if (name === 'stats') this.renderStats();
@@ -58,172 +57,97 @@
       }, { passive: true });
     },
 
-    /* ================= 首页 ================= */
+    /* ================= 首页（欢迎页 · 周期制） ================= */
     renderHome() {
       const streak = Store.getStreak();
       document.getElementById('streakBadge').textContent = '🔥 ' + streak;
       const logs = Store.getLogs();
-      const todayDone = logs.some(l => l.date === Store.today());
-      const done = Bank.loaded;
+      const todayDone = logs.some(l => l.date === Store.today() && l.mode && l.mode.indexOf('cycle:') === 0);
       const userDone = Object.keys(Store.getAnswers()).length + Object.keys(Store.getSubDone()).length;
       const loadWarn = Bank.error ? `
         <div class="card" style="background:#fef2f2;border:1px solid #fecaca;margin-bottom:14px;">
           ⚠️ 题库加载失败：若你是本地双击打开的，请改用本地服务器（python3 -m http.server 8000）或直接访问线上链接。
         </div>` : '';
+
+      /* 周期进度 */
+      let cycle = Store.getCycle();
+      if (!cycle) {
+        cycle = { id: CONFIG.cycle.id, start: Store.today(), dayDone: {} };
+        Store.saveCycle(cycle);   // 首次进入：记录周期开始日
+      }
+      const day = Store.cycleDay(cycle);
+      const cfg = Cycle.cfg();
+      const perDay = Math.max(1, Math.round(cfg.total / cfg.days));
+      const cycleOver = Store.cycleFinished(cycle, cfg);
+      const showDay = Math.min(day, cfg.days);
+
+      /* 3天分组提示：今天该刷第几天（第X组） */
+      const groupCards = Array.from({ length: cfg.days }, (_, i) => {
+        const d = i + 1;
+        const isToday = !cycleOver && d === showDay;
+        const isDone = cycleOver ? true : (d < showDay || (d === showDay && todayDone));
+        return `
+          <div class="cycle-day ${isToday ? 'today' : ''} ${isDone ? 'done' : ''}" data-day="${d}">
+            <div class="cycle-day-label">第${d}天${isToday ? ' · 今天' : ''}</div>
+            <div class="cycle-day-count">${perDay}题</div>
+            <div class="cycle-day-state">${cycleOver ? '✓ 已完成' : (isDone ? '✓ 已完成' : (isToday ? '← 该刷这组' : ''))}</div>
+          </div>`;
+      }).join('');
+
+      const cycleCard = cycleOver ? `
+        <div class="cycle-banner">
+          <div class="cycle-banner-id">周期 ${cycle.id} 已结束</div>
+        </div>
+        <div class="card" style="background:var(--primary-soft);border:1px solid var(--primary);margin-top:10px;">
+          <div style="font-size:15px;font-weight:700;color:var(--primary-dark);">🎉 本周期刷题完成！</div>
+          <div style="font-size:13px;color:var(--text-light);margin-top:4px;">培训师正在分析你的作答，即将为你制定下一周期（C2）♡<br>这两天可以先去「错题」页重刷错题，保持手感。</div>
+        </div>` : `
+        <div class="cycle-banner">
+          <div class="cycle-banner-id">周期 ${cycle.id}</div>
+          <div class="cycle-banner-progress">第 ${showDay} / ${CONFIG.cycle.days} 天</div>
+        </div>`;
+
       this.el().innerHTML = `
         ${loadWarn}
         <div class="card hero fade-in">
-          <h1>📘 武汉教师D类刷题</h1>
+          <h1>🌸 球小凡上岸！</h1>
           <p>${CONFIG.site.target}</p>
-          <p style="margin-top:8px;font-size:13px;color:var(--warning);">🎯 已刷 ${userDone} 题 / 题库 ${Bank.questions.length} 题 · 连续打卡 ${streak} 天</p>
-          <button class="btn-main" id="btnDaily">${todayDone ? '✅ 今日已完成 · 再来一组' : '🚀 开始今日测验'}</button>
-          <button class="btn-sec" id="btnMistakes">📕 错题重刷</button>
+          <p style="margin-top:6px;font-size:13px;color:var(--text-light);">距考试约 <b>${this.daysToExam()}</b> 天 · 连续打卡 ${streak} 天</p>
+          ${cycleCard}
+          <div class="cycle-groups">${groupCards}</div>
+          ${cycleOver ? `
+          <button class="btn-main" id="btnMistakes2" style="background:var(--accent);box-shadow:0 4px 14px rgba(167,139,250,.35);">📕 去错题页重刷</button>` : `
+          <button class="btn-main" id="btnDaily">${todayDone ? '✅ 今日已完成 · 查看统计' : '🚀 开始今日刷题（第' + showDay + '组）'}</button>
+          <button class="btn-sec" id="btnMistakes">📕 错题重刷</button>`}
         </div>
-        <div class="card" style="padding:12px 14px;">
-          <input type="search" id="searchInput" class="search-input" placeholder="🔍 搜索题库：知识点 / 题干关键词 / 模块" value="${esc(this._searchQ || '')}">
-          <div class="search-chips" id="searchChips"></div>
-          <div id="searchResults"></div>
-        </div>
-        <div class="section-title">练习模式</div>
-        <div class="card" style="padding:6px 0;">
-          <ul class="menu-list">
-            <li data-practice="策略选择"><span class="menu-emoji">🧭</span><div><div class="menu-title">策略选择</div><div class="menu-sub">教育情境决策 · D类核心得分点</div></div><span class="menu-arrow">›</span></li>
-            <li data-practice="判断推理"><span class="menu-emoji">🧩</span><div><div class="menu-title">判断推理</div><div class="menu-sub">图形 / 定义 / 类比 / 逻辑</div></div><span class="menu-arrow">›</span></li>
-            <li data-practice="言语理解与表达"><span class="menu-emoji">💬</span><div><div class="menu-title">言语理解与表达</div><div class="menu-sub">逻辑填空 / 片段阅读 / 语句表达</div></div><span class="menu-arrow">›</span></li>
-            <li data-practice="常识判断"><span class="menu-emoji">🌐</span><div><div class="menu-title">常识判断</div><div class="menu-sub">时政教育 / 法律 / 科技 / 人文</div></div><span class="menu-arrow">›</span></li>
-            <li data-practice="数量分析"><span class="menu-emoji">🔢</span><div><div class="menu-title">数量分析</div><div class="menu-sub">数量关系 / 资料分析</div></div><span class="menu-arrow">›</span></li>
-            <li data-practice="__subjective"><span class="menu-emoji">✍️</span><div><div class="menu-title">综合应用（主观题）</div><div class="menu-sub">辨析 / 案例分析 / 方案设计</div></div><span class="menu-arrow">›</span></li>
-          </ul>
+        <div class="section-title">今日目标</div>
+        <div class="card" style="font-size:13px;color:var(--text-light);">
+          · ${cfg.id}周期共 ${cfg.total} 题（${cfg.days}天 · 每天${perDay}题）<br>
+          · 培训师已为你安排好全部内容，你只需要按顺序刷题 ♡<br>
+          · 已刷 <b>${userDone}</b> 题 / 题库 ${Bank.questions.length} 题
         </div>
       `;
-      document.getElementById('btnDaily').addEventListener('click', async () => {
+      const btnM2 = document.getElementById('btnMistakes2');
+      if (btnM2) btnM2.addEventListener('click', () => this.show('mistakes'));
+      document.getElementById('btnDaily') && document.getElementById('btnDaily').addEventListener('click', async () => {
+        if (todayDone) { this.show('stats'); return; }
         document.getElementById('btnDaily').textContent = '组卷中…';
-        const cfg = await Quiz.drawDaily();
+        const cfg = await Quiz.drawCycle();
+        if (!cfg.questions.length) { alert('题库暂时无法组卷，请稍后再试（或检查网络/服务器）'); this.renderHome(); return; }
         Quiz.start(cfg);
       });
-      document.getElementById('btnMistakes').addEventListener('click', async () => {
+      document.getElementById('btnMistakes') && document.getElementById('btnMistakes').addEventListener('click', async () => {
         const cfg = await Quiz.drawMistakes();
         if (!cfg.questions.length) { alert('暂无待重刷错题，继续加油！'); return; }
         Quiz.start(cfg);
       });
-      document.querySelectorAll('[data-practice]').forEach(li => {
-        li.addEventListener('click', async () => {
-          const key = li.dataset.practice;
-          let cfg;
-          if (key === '__subjective') {
-            await Bank.load();
-            const subs = Bank.subjective();
-            if (!subs.length) { alert('主观题题库为空'); return; }
-            cfg = { questions: subs.slice(), mode: 'practice:subjective', title: '综合应用 · 主观题练习' };
-          } else {
-            cfg = await Quiz.drawModule(key, 10);
-          }
-          if (!cfg.questions.length) { alert('该模块题库建设中，敬请期待'); return; }
-          Quiz.start(cfg);
-        });
-      });
-
-      /* 搜索题库 */
-      const searchInput = document.getElementById('searchInput');
-      if (searchInput) {
-        searchInput.addEventListener('input', () => {
-          this._searchQ = searchInput.value;
-          this._searchShowAll = false;  // 新搜索重置展开状态
-          this.renderSearchResults();
-        });
-        this.renderSearchChips();
-        this.renderSearchResults();
-      }
     },
 
-    /* ================= 搜索题库 ================= */
-    renderSearchChips() {
-      const chips = document.getElementById('searchChips');
-      if (!chips) return;
-      const mods = Bank.modules();
-      const sel = this._searchMod || '全部';
-      chips.innerHTML = ['全部', ...Object.keys(mods)].map(m =>
-        `<button class="chip ${m === sel ? 'active' : ''}" data-mod="${esc(m)}">${esc(m)}${m !== '全部' ? ' ' + mods[m] : ''}</button>`
-      ).join('');
-      chips.querySelectorAll('.chip').forEach(c => {
-        c.addEventListener('click', () => {
-          this._searchMod = c.dataset.mod === '全部' ? '' : c.dataset.mod;
-          this._searchShowAll = false;
-          this.renderSearchChips();
-          this.renderSearchResults();
-        });
-      });
-    },
-
-    renderSearchResults() {
-      const box = document.getElementById('searchResults');
-      if (!box) return;
-      const q = (this._searchQ || '').trim().toLowerCase();
-      const mod = this._searchMod || '';
-      if (!q && !mod) { box.innerHTML = ''; return; }  // 空搜索不展示
-      let list = Bank.questions.filter(qu => {
-        if (mod && qu.module !== mod) return false;
-        if (!q) return true;
-        const hay = (qu.stem + ' ' + (qu.tag || '') + ' ' + (qu.analysis || '') + ' ' + (qu.module || '')).toLowerCase();
-        return hay.includes(q);
-      });
-      if (!list.length) {
-        box.innerHTML = '<div class="empty" style="padding:16px 0;"><div class="empty-emoji">🔍</div>没有匹配的题目</div>';
-        return;
-      }
-      const showAll = this._searchShowAll;
-      const visible = showAll ? list : list.slice(0, 15);
-      box.innerHTML = `
-        <div style="font-size:12px;color:var(--text-light);margin-bottom:6px;">共 ${list.length} 题${list.length > visible.length ? '，显示前15题' : ''}</div>
-        ${visible.map(q => this.searchItemHtml(q)).join('')}
-        ${list.length > visible.length ? '<button class="btn-sec" id="searchMore" style="margin-top:6px;">展开全部 ' + list.length + ' 题</button>' : ''}
-      `;
-      const more = document.getElementById('searchMore');
-      if (more) more.addEventListener('click', () => { this._searchShowAll = true; this.renderSearchResults(); });
-      box.querySelectorAll('[data-qid]').forEach(item => {
-        item.addEventListener('click', () => this.toggleSearchDetail(item.dataset.qid));
-      });
-    },
-
-    searchItemHtml(q) {
-      const answered = !!Store.getAnswers()[q.id];
-      const okMark = answered ? '<span style="font-size:11px;color:var(--success);">✓做过</span>' : '<span style="font-size:11px;color:var(--text-light);">未做</span>';
-      return `
-        <div class="search-item" data-qid="${esc(q.id)}">
-          <div class="search-item-head">
-            <span class="quiz-tag ${q.isSubjective ? 'sub' : 'obj'}">${esc(q.module)}</span>
-            <span style="font-size:11px;color:var(--text-light);margin-left:6px;">${esc(q.tag || '')}</span>
-            <span style="margin-left:auto;">${okMark}</span>
-          </div>
-          <div class="search-item-stem">${esc(q.stem.slice(0, 60))}${q.stem.length > 60 ? '…' : ''}</div>
-          <div class="search-item-detail" style="display:none;"></div>
-        </div>`;
-    },
-
-    toggleSearchDetail(id) {
-      const item = document.querySelector('[data-qid="' + id + '"]');
-      if (!item) return;
-      const detail = item.querySelector('.search-item-detail');
-      const q = Bank.questions.find(x => x.id === id);
-      if (!q) return;
-      if (detail.style.display === 'block') { detail.style.display = 'none'; return; }
-      let html;
-      if (q.isSubjective) {
-        html = `<div class="analysis-box" style="margin-top:8px;">
-          <div class="analysis-label">参考答案</div>${esc(q.answer || '')}
-          ${q.points ? `<div class="analysis-label" style="margin-top:6px;">评分要点</div>${esc(q.points)}` : ''}
-        </div>`;
-      } else {
-        const opts = (q.options || []).map((o, i) => {
-          const L = String.fromCharCode(65 + i);
-          const cls = L === q.answerKey ? 'correct' : '';
-          return `<div class="option ${cls}" style="cursor:default;">${esc(o)}</div>`;
-        }).join('');
-        html = `<div style="margin-top:8px;">${opts}</div>
-          <div class="analysis-box"><div class="analysis-label">解读</div>${esc(q.analysis || '')}</div>`;
-      }
-      detail.innerHTML = html;
-      detail.style.display = 'block';
+    /* 距考试天数（倒计时，暂按配置的考试日期） */
+    daysToExam() {
+      const target = new Date(CONFIG.site.examDate + 'T00:00:00');
+      const now = new Date(Store.today() + 'T00:00:00');
+      return Math.max(0, Math.ceil((target - now) / 86400000));
     },
 
     /* ================= 反馈页 ================= */
@@ -495,27 +419,6 @@
       });
     },
 
-    /* ================= 练习页 ================= */
-    renderPractice() {
-      const logs = Store.getLogs();
-      const practiceLogs = logs.filter(l => l.mode && (l.mode.indexOf('module') === 0 || l.mode === 'practice:subjective' || l.mode.indexOf('tag:') === 0));
-      const recent = practiceLogs.slice(-10).reverse();
-      this.el().innerHTML = `
-        <div class="section-title">专项练习记录</div>
-        <div class="card" style="padding:6px 0;">
-          ${recent.length ? `<ul class="menu-list">
-            ${recent.map(l => `<li><div><div class="menu-title">${esc(l.title)}</div><div class="menu-sub">${l.date} · 正确率 ${l.rate}%</div></div></li>`).join('')}
-          </ul>` : '<div class="empty"><div class="empty-emoji">📝</div>还没有练习记录，去首页开始吧</div>'}
-        </div>
-        <div class="section-title">说明</div>
-        <div class="card" style="font-size:13px;color:var(--text-light);">
-          · 专项练习固定抽取该模块题目，薄弱优先<br>
-          · 「策略选择」为D类特色模块，建议每日必练<br>
-          · 主观题练习请在纸上作答后对照参考答案，训练答题框架
-        </div>
-      `;
-    },
-
     /* ================= 错题页 ================= */
     renderMistakes() {
       const answers = Store.getAnswers();
@@ -620,7 +523,7 @@
       const c = Quiz.current;
       const q = c.questions[c.idx];
       const letter = opt.dataset.letter;
-      if (!letter) return;  // 搜索复习视图的选项（无data-letter）不参与判分
+      if (!letter) return;  // 无 data-letter 的元素不参与判分
       const ok = letter === q.answerKey;
       Quiz.submitAnswer(q, ok, letter);
       App.renderQuiz();

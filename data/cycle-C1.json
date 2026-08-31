@@ -1,0 +1,24 @@
+{
+  "meta": {
+    "id": "C1",
+    "days": 3,
+    "perDay": 2,
+    "total": 6,
+    "note": "测试验收题单（每天2题），正式C1为60题/每天20题",
+    "generated": "2026-08-31"
+  },
+  "days": [
+    {
+      "day": 1,
+      "questionIds": ["zcl01", "zt250329pd01"]
+    },
+    {
+      "day": 2,
+      "questionIds": ["zcy01", "zcg01"]
+    },
+    {
+      "day": 3,
+      "questionIds": ["zcs01", "zt250329cl01"]
+    }
+  ]
+}

@@ -3,6 +3,7 @@
   const KEY_ANSWERS = 'whteacher_answers_v1';   // 每题的作答历史
   const KEY_LOGS    = 'whteacher_quizlogs_v1';  // 每次测验的记录
   const KEY_SEEN    = 'whteacher_seen_v1';      // 题目最近出现日期（去重）
+  const KEY_CYCLE   = 'whteacher_cycle_v1';     // 当前周期进度 { id, start, dayDone:{'YYYY-MM-DD':n} }
 
   const Store = {
     /* 读取/写入每题作答记录 { id: { correct: n, wrong: n, last: 'YYYY-MM-DD', hist: [{d,ok}] } } */
@@ -93,6 +94,40 @@
         else break;
       }
       return streak;
+    },
+
+    /* ---------- 周期进度 ---------- */
+    getCycle() {
+      try { return JSON.parse(localStorage.getItem(KEY_CYCLE)) || null; }
+      catch (e) { return null; }
+    },
+    saveCycle(cycle) {
+      try { localStorage.setItem(KEY_CYCLE, JSON.stringify(cycle)); } catch (e) {}
+    },
+    /* 当前周期内第几天（1-based）：以周期开始日为准；超过周期天数返回实际天数（用于周期结束判定） */
+    cycleDay(cycle) {
+      if (!cycle || !cycle.start) return 1;
+      const start = new Date(cycle.start + 'T00:00:00');
+      const now = new Date(Store.today() + 'T00:00:00');
+      const diff = Math.floor((now - start) / 86400000);
+      return Math.max(1, diff + 1);
+    },
+    /* 周期是否已结束：3天到点（当前天数>周期天数）或累计完成题数达标 */
+    /* cfg 可选：传入周期题单配置（Cycle.cfg()），默认 CONFIG.cycle */
+    cycleFinished(cycle, cfg) {
+      if (!cycle) return false;
+      const c = cfg || CONFIG.cycle;
+      const day = Store.cycleDay(cycle);
+      if (day > c.days) return true;                                  // 3天到点
+      const doneTotal = Object.keys(cycle.dayDone || {})
+        .reduce((s, d) => s + (cycle.dayDone[d] || 0), 0);
+      const perDay = Math.max(1, Math.round(c.total / c.days));
+      return doneTotal * perDay >= c.total;                           // 刷完全部题
+    },
+    /* 当天已刷题数（今日测验记一次） */
+    cycleDayDone(cycle) {
+      if (!cycle || !cycle.dayDone) return 0;
+      return cycle.dayDone[Store.today()] || 0;
     },
 
     today() { return Store.fmt(new Date()); },

@@ -27,6 +27,7 @@ global.alert = () => {};
 require('../js/storage.js');
 require('../js/config.js');
 require('../js/bank.js');
+require('../js/cycle.js');
 require('../js/quiz.js');
 // app.js 会在加载时执行init，mock里DOMContentLoaded不触发，安全
 
@@ -39,52 +40,60 @@ function assert(name, cond, extra) {
 (async () => {
   console.log('== 题库加载 ==');
   await Bank.load();
-  assert('题库共80题', Bank.questions.length === 80, Bank.questions.length);
-  assert('客观题 = 70', Bank.questions.filter(q => !q.isSubjective).length === 70);
-  assert('主观题 = 10', Bank.questions.filter(q => q.isSubjective).length === 10);
+  assert('题库共459题', Bank.questions.length === 459, Bank.questions.length);
+  assert('客观题 = 324', Bank.questions.filter(q => !q.isSubjective).length === 324);
+  assert('主观题 = 135', Bank.questions.filter(q => q.isSubjective).length === 135);
 
-  console.log('== 抽题：今日测验 ==');
-  const daily = await Quiz.drawDaily();
-  assert('每日测验17题（15客观+2主观）', daily.questions.length === 17, daily.questions.length);
-  const objCount = daily.questions.filter(q => !q.isSubjective).length;
-  const subCount = daily.questions.filter(q => q.isSubjective).length;
-  assert('客观15题', objCount === 15, objCount);
-  assert('主观2题', subCount === 2, subCount);
-  // 模块分布
+  console.log('== 周期题单加载（cycle-C1.json） ==');
+  await Cycle.load();
+  assert('题单已加载', Cycle.hasPlan(), Cycle.plan);
+  const pcfg = Cycle.cfg();
+  assert('题单配置C1/3天/每天2题/共6题', pcfg.id === 'C1' && pcfg.days === 3 && pcfg.perDay === 2 && pcfg.total === 6, pcfg);
+  assert('第1天2个题目ID', Cycle.idsForDay(1).length === 2, Cycle.idsForDay(1));
+  assert('第2天2个题目ID', Cycle.idsForDay(2).length === 2);
+  assert('第3天2个题目ID', Cycle.idsForDay(3).length === 2);
+  assert('第4天无题目（超出计划）', Cycle.idsForDay(4).length === 0);
+
+  console.log('== 抽题：周期当日（题单模式 · 每天2题） ==');
+  const cycle = await Quiz.drawCycle();
+  assert('题单优先：当日2题', cycle.questions.length === 2, cycle.questions.length);
+  assert('来自题单', cycle.fromPlan === true, cycle.fromPlan);
+  assert('客观2题', cycle.questions.filter(q => !q.isSubjective).length === 2);
+  assert('主观0题', cycle.questions.filter(q => q.isSubjective).length === 0);
+  assert('标题含周期编号', cycle.mode === 'cycle:C1', cycle.mode);
+  assert('标题含天数', cycle.title.indexOf('第') > 0, cycle.title);
+  // 模块分布（第1天：策略选择 + 判断推理）
   const mods = {};
-  daily.questions.filter(q => !q.isSubjective).forEach(q => mods[q.module] = (mods[q.module]||0)+1);
-  console.log('  模块分布:', JSON.stringify(mods));
-  assert('包含策略选择', mods['策略选择'] >= 2, mods['策略选择']);
-  assert('包含判断推理', (mods['判断推理']||0) >= 2, mods['判断推理']);
+  cycle.questions.forEach(q => mods[q.module] = (mods[q.module]||0)+1);
+  console.log('  当日模块:', JSON.stringify(mods));
+  assert('第1天含策略选择', mods['策略选择'] === 1, mods['策略选择']);
+  assert('第1天含判断推理', mods['判断推理'] === 1, mods['判断推理']);
 
   console.log('== 模拟作答（记录错题） ==');
-  // 模拟：把前3道客观题答错，其他答对；主观题标记完成
   const wrongIds = [];
-  daily.questions.forEach((q, i) => {
-    if (q.isSubjective) { Store.recordSubjective(q.id); return; }
-    const isWrong = i < 3;
+  cycle.questions.forEach((q, i) => {
+    const isWrong = i < 1;
     if (isWrong) wrongIds.push(q.id);
     Store.recordAnswer(q.id, !isWrong);
   });
-  Quiz.markSeen(daily.questions);
+  Quiz.markSeen(cycle.questions);
   const answers = Store.getAnswers();
-  assert('作答记录已保存', Object.keys(answers).length === 15, Object.keys(answers).length);
-  assert('错题3道', wrongIds.length === 3, wrongIds.length);
+  assert('作答记录已保存', Object.keys(answers).length === 2, Object.keys(answers).length);
+  assert('错题1道', wrongIds.length === 1, wrongIds.length);
 
   console.log('== 抽题：错题重刷 ==');
   const mistakes = await Quiz.drawMistakes();
-  assert('错题重刷含3道错题', mistakes.questions.length === 3, mistakes.questions.length);
+  assert('错题重刷含1道错题', mistakes.questions.length === 1, mistakes.questions.length);
   const ids = mistakes.questions.map(q => q.id);
   wrongIds.forEach(w => assert('错题 ' + w + ' 在重刷列表中', ids.includes(w)));
 
   console.log('== 抽题：已掌握降权（答对2次的题不应优先） ==');
-  // 选一个模拟时答对过的题，再答对2次 → correct=3, wrong=0 → 已掌握
-  const goodQ = daily.questions.find(q => !q.isSubjective && !wrongIds.includes(q.id));
+  const goodQ = cycle.questions.find(q => !wrongIds.includes(q.id));
   Store.recordAnswer(goodQ.id, true);
   Store.recordAnswer(goodQ.id, true);
   const s = Quiz._score(goodQ, Store.getAnswers(), {});
   assert('掌握题得分=10（最低优先级）', s === 10, s);
-  const wrongQ = daily.questions.find(q => wrongIds.includes(q.id));
+  const wrongQ = cycle.questions.find(q => wrongIds.includes(q.id));
   const sw = Quiz._score(wrongQ, Store.getAnswers(), {});
   assert('薄弱题得分<掌握题（优先抽取）', sw < s, sw + ' vs ' + s);
 
@@ -95,17 +104,30 @@ function assert(name, cond, extra) {
   assert('全错题(1) < 掌握题(10)', sw === 1, sw);
   assert('未做过(0) < 全错(1)', sFresh < sw, sFresh + ' vs ' + sw);
 
-  console.log('== 模块练习 ==');
-  const mod = await Quiz.drawModule('策略选择', 5);
-  assert('策略选择抽5题', mod.questions.length === 5, mod.questions.length);
-  mod.questions.forEach(q => assert('全部为策略选择', q.module === '策略选择'));
+  console.log('== 周期进度存储 ==');
+  // 模拟完成一次周期测验（finish 逻辑中的周期记录）
+  const cyc = Store.getCycle() || { id: CONFIG.cycle.id, start: Store.today(), dayDone: {} };
+  cyc.dayDone = cyc.dayDone || {};
+  cyc.dayDone[Store.today()] = (cyc.dayDone[Store.today()] || 0) + 1;
+  Store.saveCycle(cyc);
+  const cyc2 = Store.getCycle();
+  assert('周期进度已保存', cyc2 && cyc2.id === 'C1', cyc2);
+  assert('周期第1天', Store.cycleDay(cyc2) === 1, Store.cycleDay(cyc2));
+  assert('当天已刷题数=1', Store.cycleDayDone(cyc2) === 1, Store.cycleDayDone(cyc2));
 
-  console.log('== 主观题完成标记 ==');
-  const subDone = Store.getSubDone();
-  assert('主观题已标记完成', Object.keys(subDone).length === 2, Object.keys(subDone).length);
+  console.log('== 周期结束判定（题单cfg：2题/天·共6题） ==');
+  const pcfg2 = Cycle.cfg();
+  // 1天完成1组（2题）未达标 → 未结束
+  assert('1组未结束周期', !Store.cycleFinished(cyc2, pcfg2));
+  // 3天到点（start 拨到4天前）→ 结束
+  const oldCycle = { id: 'C1', start: Store.dateOffset(-4), dayDone: {} };
+  assert('3天到点周期结束', Store.cycleFinished(oldCycle, pcfg2));
+  // 累计完成3组（6题）→ 结束
+  const doneCycle = { id: 'C1', start: Store.today(), dayDone: { [Store.today()]: 3 } };
+  assert('刷完6题周期结束', Store.cycleFinished(doneCycle, pcfg2));
 
   console.log('== 打卡统计 ==');
-  Store.recordQuiz({ mode: 'daily', title: '今日测验', total: 11, answered: 11, correct: 7, rate: 64 });
+  Store.recordQuiz({ mode: 'cycle:C1', title: 'C1周期 · 第1天', total: 2, answered: 2, correct: 1, rate: 50 });
   assert('打卡天数=1', Store.getStreak() === 1, Store.getStreak());
 
   console.log('\n结果: ' + pass + ' 通过, ' + fail + ' 失败');
