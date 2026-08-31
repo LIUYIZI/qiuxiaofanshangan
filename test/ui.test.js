@@ -39,6 +39,8 @@ function assert(name, cond, extra) {
   const { App, Quiz, Bank, Store } = window;
   const EM = window.EMOTION;
   const allStreakMsgs = [...EM.streak.other, ...EM.streak[3], ...EM.streak[7], ...EM.streak[14]];
+  /* 称谓归一化：模板{name}与渲染后的具体称谓统一为"小凡"比较 */
+  const normAny = s => String(s).replace(/\{name\}|老婆|凡姐|凡宝|宝贝/g, '小凡');
 
   console.log('== 首页渲染（周期制欢迎页 · 题单每天2题） ==');
   App.show('home');
@@ -56,7 +58,8 @@ function assert(name, cond, extra) {
 
   console.log('== 情绪语库UI：欢迎页老公陪伴语 ==');
   assert('欢迎页含老公陪伴语容器', htmlOut.includes('husband-msg'));
-  assert('欢迎页老公语来自welcome语料', EM.welcome.some(s => htmlOut.includes(s)));
+  assert('欢迎页老公语无{name}残留', !htmlOut.includes('{name}'));
+  assert('欢迎页老公语含称谓', EM.names.some(n => htmlOut.includes(n)));
   assert('欢迎页语料=当日日期种子', htmlOut.includes(EM.pick('welcome', { cycleId: (window.Store.getCycle() || {}).id || window.CONFIG.cycle.id, date: window.Store.today() })));
   assert('每日首刷语容器存在', !!document.getElementById('startMsg'));
 
@@ -126,14 +129,22 @@ function assert(name, cond, extra) {
 
   console.log('== 情绪语库UI：结束页老公打卡鼓励 ==');
   assert('结束页含老公鼓励卡片', v.includes('hus-card') && v.includes('老公的鼓励'));
-  assert('结束页分档语来自语料', allStreakMsgs.some(s => v.includes(s)));
-  assert('结束页刷完语来自语料', EM.done.some(s => v.includes(s)));
+  const cycleIdNow = (Store.getCycle() || {}).id || window.CONFIG.cycle.id;
+  const hasRW = Object.values(Store.getAnswers()).some(r => r.wrong >= 3);
+  const pRate = parseInt(v.match(/(\d+)%/) && v.match(/(\d+)%/)[1], 10);
+  const expectedHus = hasRW
+    ? EM.pick('repeatWrong', { cycleId: cycleIdNow, date: Store.today() })
+    : (pRate < 60 ? EM.pick('lowScore', { cycleId: cycleIdNow, date: Store.today() }) : EM.streakMsg(Store.getStreak(), { cycleId: cycleIdNow, date: Store.today() }));
+  assert('结束页老公语=三态选句', v.includes(expectedHus));
+  assert('结束页老公语无{name}残留', !v.includes('{name}'));
+  const husSubText = document.querySelector('.hus-card .hus-sub').textContent;
+  assert('结束页刷完语来自语料', EM.done.some(s => normAny(s) === normAny(husSubText)));
 
   console.log('== 情绪语库UI：静态防回归 ==');
   const appSrc = fs.readFileSync(path.join(site, 'js/app.js'), 'utf8');
   assert('app.js 含每日首刷语调用(带周期参数)', appSrc.includes("EMOTION.pick('dailyStart', { cycleId"));
   assert('app.js 含打卡分档语调用(带周期参数)', appSrc.includes('EMOTION.streakMsg(Store.getStreak()'));
-  assert('app.js 含欢迎页陪伴语调用(带周期参数)', appSrc.includes("EMOTION.pick('welcome', { cycleId"));
+  assert('app.js 含欢迎页陪伴语调用(带周期参数)', appSrc.includes("EMOTION.pick(isLazy ? 'lazy' : 'welcome', { cycleId"));
 
   console.log('== 日志口径 ==');
   const logs = Store.getLogs();
@@ -213,6 +224,36 @@ function assert(name, cond, extra) {
   console.log('== 打卡徽章 ==');
   const streak = document.getElementById('streakBadge').textContent;
   assert('打卡徽章更新', streak.indexOf('🔥') === 0);
+
+  console.log('== 情绪语库UI：负面场景（第9轮） ==');
+  // 场景A：反复出错≥3次 → 结束页 repeatWrong 语
+  localStorage.clear();
+  const qRW = Bank.questions.find(q => !q.isSubjective);
+  [false, false, false].forEach(ok => Store.recordAnswer(qRW.id, ok));
+  Quiz.start({ questions: [qRW], mode: 'tA', title: 'tA' });
+  Quiz.submitAnswer(qRW, true, qRW.answerKey);
+  Quiz.finish();
+  v = document.getElementById('view').innerHTML;
+  let husTxt = document.querySelector('.hus-card .hus-text').textContent;
+  assert('反复错场景显示repeatWrong语', EM.repeatWrong.some(s => normAny(s) === normAny(husTxt)), husTxt);
+  // 场景B：低分<60% → 结束页 lowScore 语
+  localStorage.clear();
+  const qLS = Bank.questions.find(q => !q.isSubjective && q.id !== qRW.id);
+  Quiz.start({ questions: [qLS], mode: 'tB', title: 'tB' });
+  Quiz.submitAnswer(qLS, false, qLS.options[0].slice(0, 1));
+  Quiz.finish();
+  v = document.getElementById('view').innerHTML;
+  husTxt = document.querySelector('.hus-card .hus-text').textContent;
+  assert('低分场景显示lowScore语', EM.lowScore.some(s => normAny(s) === normAny(husTxt)), husTxt);
+  // 场景C：断打卡（最近记录在2天前）→ 欢迎页 lazy 语
+  localStorage.clear();
+  Store.recordQuiz({ date: Store.dateOffset(-2), mode: 'cycle:C1', title: 'C1周期', total: 2, answered: 2, correct: 2, rate: 100 });
+  App.show('home');
+  await new Promise(r => setTimeout(r, 80));
+  v = document.getElementById('view').innerHTML;
+  const husHome = document.querySelector('.husband-msg').textContent.replace(/^💗\s*/, '');
+  assert('断打卡场景显示lazy语', EM.lazy.some(s => normAny(s) === normAny(husHome)), husHome);
+  assert('断打卡场景无{name}残留', !v.includes('{name}'));
 
   console.log('\n结果: ' + pass + ' 通过, ' + fail + ' 失败');
   process.exit(fail ? 1 : 0);

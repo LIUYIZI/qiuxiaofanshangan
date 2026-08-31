@@ -64,6 +64,8 @@
       const logs = Store.getLogs();
       const todayDone = logs.some(l => l.date === Store.today() && l.mode && l.mode.indexOf('cycle:') === 0);
       const userDone = Object.keys(Store.getAnswers()).length + Object.keys(Store.getSubDone()).length;
+      /* 断打卡检测：有历史记录但最近一次刷题不在今天/昨天 → 偷懒场景（欢迎页显示lazy语） */
+      const isLazy = streak === 0 && logs.length > 0;
       const loadWarn = Bank.error ? `
         <div class="card" style="background:#fef2f2;border:1px solid #fecaca;margin-bottom:14px;">
           ⚠️ 题库加载失败：若你是本地双击打开的，请改用本地服务器（python3 -m http.server 8000）或直接访问线上链接。
@@ -113,7 +115,7 @@
           <h1>🌸 球小凡上岸！</h1>
           <p>${CONFIG.site.target}</p>
           <p style="margin-top:6px;font-size:13px;color:var(--text-light);">距考试约 <b>${this.daysToExam()}</b> 天 · 连续打卡 ${streak} 天</p>
-          <div class="husband-msg">💗 ${EMOTION.pick('welcome', { cycleId: cycle.id })}</div>
+          <div class="husband-msg">💗 ${EMOTION.pick(isLazy ? 'lazy' : 'welcome', { cycleId: cycle.id })}</div>
           ${cycleCard}
           <div class="cycle-groups">${groupCards}</div>
           ${cycleOver ? `
@@ -423,6 +425,13 @@
           <div class="bar"><div style="width:${k.rate}%"></div></div>`;
       }).join('') || '<div class="empty">今日全是主观题，正确率不计入。</div>';
 
+      /* 老公语选句：反复出错 > 低分 > 正常打卡分档（轻量负面+安抚，答题中不弹） */
+      const cycleId = (Store.getCycle() || {}).id || CONFIG.cycle.id;
+      const hasRepeatWrong = Object.values(Store.getAnswers()).some(r => r.wrong >= 3);
+      const husText = hasRepeatWrong
+        ? EMOTION.pick('repeatWrong', { cycleId })
+        : (rate < 60 ? EMOTION.pick('lowScore', { cycleId }) : EMOTION.streakMsg(Store.getStreak(), { cycleId }));
+
       this.el().innerHTML = `
         <div class="result-score fade-in">
           <div class="big">${rate}%</div>
@@ -435,8 +444,8 @@
         </div>
         <div class="card hus-card">
           <div class="hus-title">❤️ 老公的鼓励</div>
-          <div class="hus-text">${EMOTION.streakMsg(Store.getStreak(), { cycleId: (Store.getCycle() || {}).id || CONFIG.cycle.id })}</div>
-          <div class="hus-sub">${EMOTION.pick('done', { cycleId: (Store.getCycle() || {}).id || CONFIG.cycle.id })}</div>
+          <div class="hus-text">${husText}</div>
+          <div class="hus-sub">${EMOTION.pick('done', { cycleId })}</div>
         </div>
         <div class="card">
           <div class="section-title" style="margin-top:0;">📊 知识点掌握度</div>

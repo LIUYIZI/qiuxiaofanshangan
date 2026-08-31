@@ -138,23 +138,31 @@ function assert(name, cond, extra) {
   assert('done语料5条', EM.done.length === 5, EM.done.length);
   assert('打卡分档3/7/14各3条', EM.streak[3].length === 3 && EM.streak[7].length === 3 && EM.streak[14].length === 3);
   assert('打卡其他档3条', EM.streak.other.length === 3, EM.streak.other.length);
-  assert('pick(welcome) 在语料内', EM.welcome.includes(EM.pick('welcome')));
-  assert('pick(dailyStart) 在语料内', EM.dailyStart.includes(EM.pick('dailyStart')));
-  assert('pick(done) 在语料内', EM.done.includes(EM.pick('done')));
+  /* {name} 称谓归一化：模板{name}与渲染后任意具体称谓统一为"小凡"比较 */
+  const normAny = s => String(s).replace(/\{name\}|老婆|凡姐|凡宝|宝贝/g, '小凡');
+  const pickIn = (cat, opts) => EM.pool(cat, opts && opts.cycleId).some(s => normAny(s) === normAny(EM.pick(cat, opts)));
+  const streakIn = (arr, streak, opts) => arr.some(s => normAny(s) === normAny(EM.streakMsg(streak, opts)));
+  assert('pick(welcome) 在语料内', pickIn('welcome'));
+  assert('pick(dailyStart) 在语料内', pickIn('dailyStart'));
+  assert('pick(done) 在语料内', pickIn('done'));
+  assert('pick(lazy) 在语料内', pickIn('lazy'));
+  assert('pick(lowScore) 在语料内', pickIn('lowScore'));
+  assert('pick(repeatWrong) 在语料内', pickIn('repeatWrong'));
   // 分档选择：未达里程碑用 other，达到用对应档，区间内用上一档
-  assert('0天→其他档', EM.streak.other.includes(EM.streakMsg(0)));
-  assert('2天→其他档', EM.streak.other.includes(EM.streakMsg(2)));
-  assert('3天→3天档', EM.streak[3].includes(EM.streakMsg(3)));
-  assert('5天→3天档（未到7）', EM.streak[3].includes(EM.streakMsg(5)));
-  assert('7天→7天档', EM.streak[7].includes(EM.streakMsg(7)));
-  assert('13天→7天档', EM.streak[7].includes(EM.streakMsg(13)));
-  assert('14天→14天档', EM.streak[14].includes(EM.streakMsg(14)));
-  assert('20天→14天档', EM.streak[14].includes(EM.streakMsg(20)));
-  // 语料质量：全部短句、不含图片引用
-  const allMsgs = [...EM.welcome, ...EM.dailyStart, ...EM.done, ...EM.streak[3], ...EM.streak[7], ...EM.streak[14], ...EM.streak.other];
-  assert('全部语料短句≤30字', allMsgs.every(s => s.length <= 30), allMsgs.filter(s => s.length > 30));
+  assert('0天→其他档', streakIn(EM.streak.other, 0));
+  assert('2天→其他档', streakIn(EM.streak.other, 2));
+  assert('3天→3天档', streakIn(EM.streak[3], 3));
+  assert('5天→3天档（未到7）', streakIn(EM.streak[3], 5));
+  assert('7天→7天档', streakIn(EM.streak[7], 7));
+  assert('13天→7天档', streakIn(EM.streak[7], 13));
+  assert('14天→14天档', streakIn(EM.streak[14], 14));
+  assert('20天→14天档', streakIn(EM.streak[14], 20));
+  // 语料质量：全部短句（{name}占位按"小凡"2字计）、不含图片引用
+  const allMsgs = [...EM.welcome, ...EM.dailyStart, ...EM.done, ...EM.streak[3], ...EM.streak[7], ...EM.streak[14], ...EM.streak.other, ...EM.lazy, ...EM.lowScore, ...EM.repeatWrong];
+  const short = s => s.split('{name}').join('小凡').length;
+  assert('全部语料短句≤30字', allMsgs.every(s => short(s) <= 30), allMsgs.map(s => [s, short(s)]).filter(x => x[1] > 30));
   assert('语料不含图片引用', !JSON.stringify(allMsgs).match(/<img|\.png|\.jpg/i));
-  assert('老公角色自称贯穿', allMsgs.filter(s => s.indexOf('老公') >= 0).length >= 8, allMsgs.filter(s => s.indexOf('老公') >= 0).length);
+  assert('老公角色自称贯穿', allMsgs.filter(s => s.indexOf('老公') >= 0).length >= 10, allMsgs.filter(s => s.indexOf('老公') >= 0).length);
 
   console.log('== 情绪语库每日轮换（第8.5轮） ==');
   const d1 = '2026-09-01', d2 = '2026-09-02';
@@ -164,10 +172,10 @@ function assert(name, cond, extra) {
   assert('连续两天不同：welcome', EM.pick('welcome', {date: d1}) !== EM.pick('welcome', {date: d2}));
   assert('连续两天不同：dailyStart', EM.pick('dailyStart', {date: d1}) !== EM.pick('dailyStart', {date: d2}));
   assert('连续两天不同：done', EM.pick('done', {date: d1}) !== EM.pick('done', {date: d2}));
-  assert('日期种子结果在语料内', EM.welcome.includes(EM.pick('welcome', {date: d1})));
+  assert('日期种子结果在语料内', pickIn('welcome', {date: d1}));
   assert('seed跨月进位也每天+1', EM.seedOf('2026-09-30') + 1 === EM.seedOf('2026-10-01'));
-  assert('分档语日期轮换：3档', EM.streak[3].includes(EM.streakMsg(3, {date: d1})) && EM.streak[3].includes(EM.streakMsg(3, {date: d2})));
-  assert('分档语日期轮换：other档', EM.streak.other.includes(EM.streakMsg(1, {date: d1})) && EM.streak.other.includes(EM.streakMsg(1, {date: d2})));
+  assert('分档语日期轮换：3档', streakIn(EM.streak[3], 3, {date: d1}) && streakIn(EM.streak[3], 3, {date: d2}));
+  assert('分档语日期轮换：other档', streakIn(EM.streak.other, 1, {date: d1}) && streakIn(EM.streak.other, 1, {date: d2}));
 
   console.log('== 情绪语库周期专属（第8.5轮） ==');
   const savedPeriods = EM.periods;
@@ -179,13 +187,30 @@ function assert(name, cond, extra) {
   };
   assert('周期专属优先：welcome来自C2', ['周期C2专属欢迎语A', '周期C2专属欢迎语B'].includes(EM.pick('welcome', {cycleId: 'C2', date: d1})));
   assert('周期专属优先：dailyStart来自C2', EM.pick('dailyStart', {cycleId: 'C2', date: d1}) === '周期C2专属首刷语');
-  assert('未覆盖分类回退：done用通用', EM.done.includes(EM.pick('done', {cycleId: 'C2', date: d1})));
-  assert('streak未覆盖回退：other用通用', EM.streak.other.includes(EM.streakMsg(1, {cycleId: 'C2', date: d1})));
-  assert('无周期参数用通用语料', EM.welcome.includes(EM.pick('welcome', {date: d1})));
+  assert('未覆盖分类回退：done用通用', pickIn('done', {cycleId: 'C2', date: d1}));
+  assert('streak未覆盖回退：other用通用', streakIn(EM.streak.other, 1, {cycleId: 'C2', date: d1}));
+  assert('无周期参数用通用语料', pickIn('welcome', {date: d1}));
   EM.periods.C2.streak = { other: ['周期C2常规档语'] };
   assert('streak周期覆盖生效', EM.streakMsg(1, {cycleId: 'C2', date: d1}) === '周期C2常规档语');
   EM.periods = savedPeriods;
-  assert('恢复periods后回退通用', EM.welcome.includes(EM.pick('welcome', {cycleId: 'C2', date: d1})));
+  assert('恢复periods后回退通用', pickIn('welcome', {cycleId: 'C2', date: d1}));
+
+  console.log('== 情绪语库称谓与负面语料（第9轮） ==');
+  assert('称谓池7个且小凡权重3', EM.names.length === 7 && EM.names.filter(n => n === '小凡').length === 3, EM.names);
+  assert('nameFor返回池内称谓', EM.names.includes(EM.nameFor(d1)));
+  assert('称谓同日固定', EM.nameFor(d1) === EM.nameFor(d1));
+  assert('称谓替换后无{name}残留', !EM.pick('welcome', {date: d1}).includes('{name}') && !EM.streakMsg(1, {date: d1}).includes('{name}'));
+  assert('称谓替换有效（文本含称谓池词）', EM.names.some(n => EM.pick('welcome', {date: d1}).includes(n)));
+  assert('负面语料各3条', EM.lazy.length === 3 && EM.lowScore.length === 3 && EM.repeatWrong.length === 3);
+  const neg = [...EM.lazy, ...EM.lowScore, ...EM.repeatWrong];
+  assert('负面语料均带安抚符号', neg.every(s => /[♡🌸❤️]/.test(s)));
+  assert('负面语料含轻量情绪词', neg.every(s => /无语|担心|失望|着急|偷懒|错/.test(s)));
+  assert('负面语料不真骂', neg.every(s => !/废物|蠢|笨|滚|讨厌/.test(s)));
+  assert('负面语料句末安抚收尾', neg.every(s => /[♡🌸❤️]$/.test(s)));
+  assert('负面语料日期轮换', EM.pick('lazy', {date: d1}) !== EM.pick('lazy', {date: d2}));
+  EM.periods = { C2: { lazy: ['周期C2专属偷懒语 ♡'] } };
+  assert('周期lazy覆盖生效', EM.pick('lazy', {cycleId: 'C2', date: d1}) === '周期C2专属偷懒语 ♡');
+  EM.periods = savedPeriods;
 
   console.log('\n结果: ' + pass + ' 通过, ' + fail + ' 失败');
   process.exit(fail ? 1 : 0);
