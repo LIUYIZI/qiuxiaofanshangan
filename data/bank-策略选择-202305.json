@@ -1,0 +1,130 @@
+{
+ "meta": {
+  "库名": "职测D-策略选择真题（2023-05-07联考）",
+  "类型": "真题",
+  "来源": "星途径PDF",
+  "录入时间": "2026-08-31"
+ },
+ "questions": [
+  {
+   "id": "zt202305cl01",
+   "type": "single",
+   "module": "策略选择",
+   "tag": "班级管理",
+   "source": "真题-联考·2023-05-07·星途径",
+   "stem": "stem",
+   "options": "options",
+   "answer": "D",
+   "analysis": "②选项在班级严肃批评学生，做自我检讨会挫伤小孔的自尊心，学生容易滋生逆反情绪，不利于 帮助其改变不良行为。故，利用排除法，可知答案为D。",
+   "difficulty": "中"
+  },
+  {
+   "id": "zt202305cl02",
+   "type": "single",
+   "module": "策略选择",
+   "tag": "班级管理",
+   "source": "真题-联考·2023-05-07·星途径",
+   "stem": "stem",
+   "options": "options",
+   "answer": "B",
+   "analysis": "针对学生违纪行为，应首先与学生沟通，了解学生产生问题的原因，进行针对性的教育。故B 选 项正确。",
+   "difficulty": "中"
+  },
+  {
+   "id": "zt202305cl03",
+   "type": "single",
+   "module": "策略选择",
+   "tag": "班级管理",
+   "source": "真题-联考·2023-05-07·星途径",
+   "stem": "stem",
+   "options": "options",
+   "answer": "C",
+   "analysis": "小涛连续三次上课，不符合按照体育课的着装要求。可通过联系其家长能帮助解决。A 选项不能从 根本上解决问题。BD 选项解决方式过于粗暴，且剥夺了学生参与体育课的权利。",
+   "difficulty": "中"
+  },
+  {
+   "id": "zt202305cl04",
+   "type": "single",
+   "module": "策略选择",
+   "tag": "班级管理",
+   "source": "真题-联考·2023-05-07·星途径",
+   "stem": "stem",
+   "options": "options",
+   "answer": "A",
+   "analysis": "A 选项符合家校交往的策略。",
+   "difficulty": "中"
+  },
+  {
+   "id": "zt202305cl05",
+   "type": "single",
+   "module": "策略选择",
+   "tag": "班级管理",
+   "source": "真题-联考·2023-05-07·星途径",
+   "stem": "stem",
+   "options": "options",
+   "answer": "C",
+   "analysis": "此举有效保护了学生的自尊心，有效发挥了教育机智。",
+   "difficulty": "中"
+  },
+  {
+   "id": "zt202305cl06",
+   "type": "single",
+   "module": "策略选择",
+   "tag": "班级管理",
+   "source": "真题-联考·2023-05-07·星途径",
+   "stem": "stem",
+   "options": "options",
+   "answer": "D",
+   "analysis": "教师在与家长沟通学生问题时，应坚持正面赏识教育，调整家长对学生不合理的期望。",
+   "difficulty": "中"
+  },
+  {
+   "id": "zt202305cl07",
+   "type": "single",
+   "module": "策略选择",
+   "tag": "班级管理",
+   "source": "真题-联考·2023-05-07·星途径",
+   "stem": "stem",
+   "options": "options",
+   "answer": "B",
+   "analysis": "开展个别教育时，应首先深入了解和研究学生，再此基础上再进行针对性的教育。",
+   "difficulty": "中"
+  },
+  {
+   "id": "zt202305cl08",
+   "type": "single",
+   "module": "策略选择",
+   "tag": "班级管理",
+   "source": "真题-联考·2023-05-07·星途径",
+   "stem": "stem",
+   "options": "options",
+   "answer": "D",
+   "analysis": "ABC 选项处理方式简单粗暴，容易造成师生关系紧张，不利于解决问题。",
+   "difficulty": "中"
+  },
+  {
+   "id": "zt202305cl09",
+   "type": "single",
+   "module": "策略选择",
+   "tag": "班级管理",
+   "source": "真题-联考·2023-05-07·星途径",
+   "stem": "stem",
+   "options": "options",
+   "answer": "A",
+   "analysis": "同学之间发生矛盾时，应心平气和的沟通，而不能动手打人。因此，首先要对动手打人的学生进 行批评教育。",
+   "difficulty": "中"
+  },
+  {
+   "id": "zt202305cl10",
+   "type": "single",
+   "module": "策略选择",
+   "tag": "班级管理",
+   "source": "真题-联考·2023-05-07·星途径",
+   "stem": "stem",
+   "options": "options",
+   "answer": "D",
+   "analysis": "处理学生学习问题时，教师之间应相互协商合作，共同解决。",
+   "difficulty": "中"
+  }
+ ]
+}

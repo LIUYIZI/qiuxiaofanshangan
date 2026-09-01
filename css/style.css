@@ -176,20 +176,20 @@ html, body {
 .option.dim { opacity: .55; }
 .option:disabled { cursor: default; }
 
-/* 解析区（第12轮：压缩行距） */
+/* 解析区（第12轮：压缩行距；第13轮：答案→解读间距再压） */
 .analysis-box {
-  margin-top: 6px; padding: 10px 12px;
+  margin-top: 6px; padding: 8px 12px;
   background: #f8fafc; border-left: 4px solid var(--primary);
   border-radius: 0 10px 10px 0;
   font-size: 14px; color: #334155;
   white-space: pre-wrap; word-break: break-word;
 }
 .analysis-box .analysis-label { font-weight: 700; color: var(--primary-dark); margin-bottom: 2px; }
-.analysis-box .analysis-source { font-size: 12px; color: var(--text-light); margin-bottom: 4px; }
+.analysis-box .analysis-source { font-size: 12px; color: var(--text-light); margin-bottom: 2px; }
 
 /* 知识点区块（kp一句话 + kp_mix联想/易混；分类行与内容行分行，第12轮） */
 .kp-block {
-  margin: 6px 0 8px; padding: 8px 12px;
+  margin: 3px 0 4px; padding: 6px 12px;
   background: #fdf2f8; border: 1px solid #fbcfe8; border-radius: 10px;
   font-size: 13px; line-height: 1.5; white-space: normal;
 }
@@ -200,8 +200,8 @@ html, body {
 .kp-block .kp-confuse { color: #b45309; } /* 易混 · 琥珀 */
 
 .answer-badge {
-  display: inline-block; margin-bottom: 6px;
-  padding: 3px 12px; border-radius: 999px;
+  display: inline-block; margin-bottom: 2px;
+  padding: 2px 12px; border-radius: 999px;
   font-size: 13px; font-weight: 700;
 }
 .answer-badge.ok { background: #dcfce7; color: #166534; }
@@ -296,6 +296,8 @@ html, body {
 .kp-study-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .kp-study-name { font-size: 18px; font-weight: 800; color: var(--primary-dark); margin: 6px 0; line-height: 1.4; }
 .kp-study-summary { font-size: 14px; color: #334155; line-height: 1.6; }
+/* 摘抄知识点（联想/易混）：相对完整展示，字号弱于总结归纳（第13轮） */
+.kp-study-card .kp-mix { font-size: 12px; margin-top: 3px; line-height: 1.55; }
 .kp-done-msg { margin-top: 10px; font-size: 13px; color: var(--success); font-weight: 600; }
 
 /* ===== 周期制展示（首页） ===== */
@@ -317,7 +319,10 @@ html, body {
   border: 2px solid var(--border);
   border-radius: 12px;
   padding: 8px 4px;
+  cursor: pointer;
+  transition: transform .12s;
 }
+.cycle-day:active { transform: scale(.96); }
 .cycle-day.today { border-color: var(--primary); background: #fff; box-shadow: var(--shadow); }
 .cycle-day.done { opacity: .55; }
 .cycle-day-label { font-size: 13px; font-weight: 700; color: var(--text); }

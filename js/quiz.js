@@ -5,19 +5,20 @@
 
     /* ---------- 抽题 ---------- */
 
-    /* 周期当日测验：优先使用培训师题单（cycle-C1.json 按天取题），无题单则按模块权重动态抽题 */
-    async drawCycle() {
+    /* 周期当日测验：优先使用培训师题单（cycle-C1.json 按天取题），无题单则按模块权重动态抽题
+       dayOverride：指定刷第几天（首页前后天卡片手动进入练习）；缺省=当前周期进度天 */
+    async drawCycle(dayOverride) {
       await Bank.load();
       await Cycle.load();
       const cycle = Store.getCycle() || { id: CONFIG.cycle.id, start: Store.today(), dayDone: {} };
-      const day = Store.cycleDay(cycle);
+      const day = (dayOverride && dayOverride >= 1) ? dayOverride : Store.cycleDay(cycle);
       const cfg = Cycle.cfg();
       const perDay = Math.max(1, Math.round(cfg.total / cfg.days));
 
-      /* 题单优先：当天有固定题 → 直接返回 */
+      /* 题单优先：该天有固定题 → 直接返回 */
       const planned = Cycle.questionsForDay(day);
       if (planned.length) {
-        return { questions: planned, mode: 'cycle:' + cycle.id, title: cycle.id + '周期 · 第' + Math.min(day, cfg.days) + '天', fromPlan: true };
+        return { questions: planned, mode: 'cycle:' + cycle.id, title: cycle.id + '周期 · 第' + Math.min(day, cfg.days) + '天', fromPlan: true, day: day };
       }
 
       /* 回退：动态抽题（无题单或当天题单缺失） */
@@ -84,7 +85,7 @@
       const questions = [...picked];
       for (let i = 0; i < subN && i < subs.length; i++) questions.push(subs[i]);
 
-      return { questions, mode: 'cycle:' + cycle.id, title: cycle.id + '周期 · 第' + Math.min(day, cfg.days) + '天' };
+      return { questions, mode: 'cycle:' + cycle.id, title: cycle.id + '周期 · 第' + Math.min(day, cfg.days) + '天', day: day };
     },
 
     /* 今日错题复习：按复习权重（艾宾浩斯节点优先 + 错误次数 + 时间衰减）排序全部错题 */

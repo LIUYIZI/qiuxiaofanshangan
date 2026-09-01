@@ -142,6 +142,7 @@ function assert(name, cond, extra) {
 
   console.log('== 情绪语库UI：静态防回归 ==');
   const appSrc = fs.readFileSync(path.join(site, 'js/app.js'), 'utf8');
+  const styleSrc = fs.readFileSync(path.join(site, 'css/style.css'), 'utf8');
   assert('app.js 含每日首刷语调用(带周期参数)', appSrc.includes("EMOTION.pick('dailyStart', { cycleId"));
   assert('app.js 含打卡分档语调用(带周期参数)', appSrc.includes('EMOTION.streakMsg(Store.getStreak()'));
   assert('app.js 含欢迎页陪伴语调用(带周期参数)', appSrc.includes("EMOTION.pick(isLazy ? 'lazy' : 'welcome', { cycleId"));
@@ -242,6 +243,25 @@ function assert(name, cond, extra) {
   }
   const chip = document.querySelector('.kp-mod-chips .chip[data-kpmod="常识判断"]');
   if (chip) { chip.click(); v = document.getElementById('view').innerHTML; assert('模块筛选生效', v.includes('常识判断')); }
+  /* 第13轮：知识点卡片摘抄（联想/易混）相对完整展示，不截断 */
+  const kpCardSrc = document.getElementById('view').innerHTML;
+  assert('学习卡片含摘抄容器(kp-mix)', kpCardSrc.includes('kp-mix'));
+  assert('学习卡片调用full模式（不截断）', appSrc.includes("linkText(l, { full: true })"));
+  assert('学习卡片摘抄字号弱于总结', styleSrc.includes('.kp-study-card .kp-mix') && styleSrc.includes('font-size: 12px'));
+
+  console.log('== 首页分组卡片可点击进入指定天（第13轮） ==');
+  App.show('home');
+  await new Promise(r => setTimeout(r, 50));
+  v = document.getElementById('view').innerHTML;
+  assert('分组卡片含data-day', v.includes('data-day="1"') && v.includes('data-day="3"'));
+  const dayCard = document.querySelector('.cycle-day[data-day="2"]');
+  if (dayCard) {
+    dayCard.click();
+    await new Promise(r => setTimeout(r, 150));
+    assert('点击第2天卡片进入测验', !!Quiz.current && Quiz.current.title.indexOf('第2天') >= 0, Quiz.current && Quiz.current.title);
+    assert('第2天测验20题', Quiz.current && Quiz.current.questions.length === 20);
+    Quiz.current = null;
+  }
 
   console.log('== 今日错题复习页 ==');
   App.show('mistakes');

@@ -70,6 +70,20 @@ function assert(name, cond, extra) {
   assert('第1天含策略选择', mods['策略选择'] === 6, mods['策略选择']);
   assert('第1天含判断推理', mods['判断推理'] === 4, mods['判断推理']);
 
+  console.log('== 抽题：指定天（首页前后天卡片手动进入，第13轮） ==');
+  const c2 = await Quiz.drawCycle(2);
+  assert('指定第2天：20题', c2.questions.length === 20, c2.questions.length);
+  assert('指定第2天：day=2', c2.day === 2, c2.day);
+  assert('指定第2天：标题含第2天', c2.title.indexOf('第2天') > 0, c2.title);
+  const c3 = await Quiz.drawCycle(3);
+  assert('指定第3天：day=3', c3.day === 3, c3.day);
+  const c1ids = new Set(cycle.questions.map(q => q.id));
+  const c2ids = new Set(c2.questions.map(q => q.id));
+  const c3ids = new Set(c3.questions.map(q => q.id));
+  assert('第1天与第2天题不重复', [...c1ids].every(id => !c2ids.has(id)));
+  assert('第2天与第3天题不重复', [...c2ids].every(id => !c3ids.has(id)));
+  assert('day=0视为当天（回退）', (await Quiz.drawCycle(0)).day === 1);
+
   console.log('== 模拟作答（记录错题） ==');
   const wrongIds = [];
   cycle.questions.forEach((q, i) => {
@@ -152,7 +166,7 @@ function assert(name, cond, extra) {
   assert('记住了已记录', Store.getKpRemembered()['KP-CS01'] === Store.today());
   assert('学习打卡日期统计', Store.kpStudyDays()[Store.today()] >= 1);
 
-  console.log('== 错题复习权重（第12轮·艾宾浩斯 1/2/4/7/15） ==');
+  console.log('== 错题复习权重（第13轮·艾宾浩斯 1/2/4 三次复习） ==');
   const wrongRec = Object.values(Store.getAnswers()).find(r => r.wrong > 0);
   assert('有错题记录', !!wrongRec);
   assert('daysSinceLastWrong>=0', Store.daysSinceLastWrong(wrongRec) >= 0);
@@ -161,7 +175,9 @@ function assert(name, cond, extra) {
   assert('错后1天→到期', Store.reviewDue(mk(1, 1)));
   assert('错后2天→到期', Store.reviewDue(mk(1, 2)));
   assert('错后3天→未到期', !Store.reviewDue(mk(1, 3)));
-  assert('错后15天→到期', Store.reviewDue(mk(1, 15)));
+  assert('错后4天→到期', Store.reviewDue(mk(1, 4)));
+  assert('错后7天→未到期（已减至3次）', !Store.reviewDue(mk(1, 7)));
+  assert('错后15天→未到期（已减至3次）', !Store.reviewDue(mk(1, 15)));
   assert('到期权重>未到期', Store.reviewWeight(mk(1, 1)) > Store.reviewWeight(mk(1, 3)));
   assert('错2次权重>错1次', Store.reviewWeight(mk(2, 3)) > Store.reviewWeight(mk(1, 3)));
   assert('wrongRecords按权重降序', Store.wrongRecords().length >= 1);

@@ -95,16 +95,16 @@
       const cycleOver = Store.cycleFinished(cycle, cfg);
       const showDay = Math.min(day, cfg.days);
 
-      /* 3天分组提示：今天该刷第几天（第X组） */
+      /* 3天分组提示：默认今天该刷第X组；前后天的卡片也可手动点击进入练习 */
       const groupCards = Array.from({ length: cfg.days }, (_, i) => {
         const d = i + 1;
         const isToday = !cycleOver && d === showDay;
         const isDone = cycleOver ? true : (d < showDay || (d === showDay && todayDone));
         return `
-          <div class="cycle-day ${isToday ? 'today' : ''} ${isDone ? 'done' : ''}" data-day="${d}">
+          <div class="cycle-day ${isToday ? 'today' : ''} ${isDone ? 'done' : ''}" data-day="${d}" role="button" aria-label="进入第${d}天练习">
             <div class="cycle-day-label">第${d}天${isToday ? ' · 今天' : ''}</div>
             <div class="cycle-day-count">${perDay}题</div>
-            <div class="cycle-day-state">${cycleOver ? '✓ 已完成' : (isDone ? '✓ 已完成' : (isToday ? '← 该刷这组' : ''))}</div>
+            <div class="cycle-day-state">${cycleOver ? '✓ 已完成' : (isDone ? '✓ 已完成' : (isToday ? '← 该刷这组' : '点击进入'))}</div>
           </div>`;
       }).join('');
 
@@ -146,16 +146,22 @@
       `;
       const btnM2 = document.getElementById('btnMistakes2');
       if (btnM2) btnM2.addEventListener('click', () => this.show('mistakes'));
-      document.getElementById('btnDaily') && document.getElementById('btnDaily').addEventListener('click', async () => {
-        if (todayDone) { this.show('stats'); return; }
+      /* 组卷并开始某天的练习（首页主按钮=当天；分组卡片=指定天） */
+      const startDay = async (day) => {
         const btn = document.getElementById('btnDaily');
         const msg = document.getElementById('startMsg');
         if (msg) msg.innerHTML = '💗 ' + EMOTION.pick('dailyStart', { cycleId: cycle.id });
-        btn.textContent = '组卷中…';
-        btn.disabled = true;
-        const cfg = await Quiz.drawCycle();
+        if (btn) { btn.textContent = '组卷中…'; btn.disabled = true; }
+        const cfg = await Quiz.drawCycle(day);
         if (!cfg.questions.length) { alert('题库暂时无法组卷，请稍后再试（或检查网络/服务器）'); this.renderHome(); return; }
         Quiz.start(cfg);
+      };
+      document.getElementById('btnDaily') && document.getElementById('btnDaily').addEventListener('click', () => {
+        if (todayDone) { this.show('stats'); return; }
+        startDay();
+      });
+      document.querySelectorAll('.cycle-day[data-day]').forEach(el => {
+        el.addEventListener('click', () => startDay(parseInt(el.dataset.day, 10)));
       });
       document.getElementById('btnMistakes') && document.getElementById('btnMistakes').addEventListener('click', async () => {
         const cfg = await Quiz.drawTodayReview();
@@ -479,7 +485,8 @@
       const done = remembered[cur.id];
       const memCount = items.filter(x => remembered[x.id]).length;
       const linksHtml = (cur.links || []).map(l => {
-        const t = KNOWLEDGE.linkText(l);
+        /* 学习卡片：摘抄知识点相对完整展示（full=true 不截断），字号弱于总结归纳（CSS .kp-study-card .kp-mix 12px） */
+        const t = KNOWLEDGE.linkText(l, { full: true });
         if (!t) return '';
         const cls = l.type === '联想' ? 'kp-link' : 'kp-confuse';
         const icon = l.type === '联想' ? '🔗' : '⚠️';
@@ -506,6 +513,16 @@
       document.querySelectorAll('.kp-mod-chips .chip').forEach(c => {
         c.addEventListener('click', () => { this._kpMod = c.dataset.kpmod; this._kpIdx = 0; this.renderKnowledge(); });
       });
+      /* 滑块归位修复：重渲染后 chips 滚动位置被重置，选中标签可能滚出可视区 → 手动滚动使其居中 */
+      const chips = document.querySelector('.kp-mod-chips');
+      const activeChip = chips && chips.querySelector('.chip.active');
+      if (chips && activeChip) {
+        const cRect = chips.getBoundingClientRect();
+        const aRect = activeChip.getBoundingClientRect();
+        if (aRect.left < cRect.left || aRect.right > cRect.right) {
+          chips.scrollLeft += aRect.left - cRect.left - (cRect.width - aRect.width) / 2;
+        }
+      }
       const btn = document.getElementById('kpRemember');
       if (btn && !done) btn.addEventListener('click', () => {
         Store.recordKpRemembered(cur.id);
@@ -532,7 +549,7 @@
       this.el().innerHTML = `
         <div class="section-title">📕 今日错题复习</div>
         <div class="card" style="padding:10px;font-size:13px;color:var(--text-light);">
-          按记忆曲线（错后 1/2/4/7/15 天）安排复习：到期错题 🔔 优先，其余按错误次数与遗忘时间排序。
+          按记忆曲线（错后 1/2/4 天）安排复习：到期错题 🔔 优先，其余按错误次数与遗忘时间排序。
         </div>
         <div class="section-title">错题清单（${rows.length}题${dueN ? ' · 🔔' + dueN + '题到期' : ''}）</div>
         <div class="card" style="padding:6px 0;">

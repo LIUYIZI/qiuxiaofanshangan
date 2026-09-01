@@ -36,8 +36,10 @@
       return m;
     },
 
-    /* 联想/易混的展示文本：ref 编号解析为"名称（一句话概括）"，不展示编号；无编号自由文本原样返回 */
-    linkText(link) {
+    /* 联想/易混的展示文本：ref 编号解析为"名称（一句话概括）"，不展示编号；无编号自由文本原样返回
+       opts.full=true 时不截断（知识点学习卡片用）；默认 maxLen 截断（答题判分后的知识点区块用） */
+    linkText(link, opts) {
+      const maxLen = (opts && opts.full) ? Infinity : 60;
       if (!link) return '';
       if (link.ref) {
         const ref = link.ref;
@@ -45,7 +47,7 @@
           const t = this.byId[ref];
           if (t) {
             const s = (t.summary || '').replace(/[。；;]$/, '');
-            return t.name + (s ? '：' + (s.length > 28 ? s.slice(0, 28) + '…' : s) : '');
+            return t.name + (s ? '：' + (s.length > maxLen ? s.slice(0, maxLen) + '…' : s) : '');
           }
         } else if (/^[ABC]\d+$/.test(ref) && this.pairs[ref]) {
           return this.pairs[ref];
