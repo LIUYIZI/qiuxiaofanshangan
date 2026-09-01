@@ -154,7 +154,6 @@ function assert(name, cond, extra) {
   assert('app.js含知识点页渲染', appSrc.includes('renderKnowledge'));
   assert('app.js 含今日错题复习组卷', appSrc.includes('drawTodayReview'));
   assert('app.js 含日历月份导航', appSrc.includes('calPrev') && appSrc.includes('shiftCal'));
-  assert('app.js 含一键重置(reset=1)', appSrc.includes('reset=1') && appSrc.includes('whteacher_'));
 
   console.log('== 日志口径 ==');
   const logs = Store.getLogs();

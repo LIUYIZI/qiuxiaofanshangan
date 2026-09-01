@@ -1,10 +1,5 @@
 /* ===== 应用主逻辑：视图渲染 + 卡片交互 ===== */
 (function (global) {
-  /* ?reset=1 一键重置：清空本站全部数据（仅 whteacher_ 前缀键），从 C1 第1天重新开始（第13轮） */
-  if (/[?&]reset=1/.test(location.search)) {
-    Object.keys(localStorage).forEach(k => { if (k.indexOf('whteacher_') === 0) localStorage.removeItem(k); });
-    history.replaceState(null, '', location.pathname + location.hash);
-  }
   const App = {
     view: 'home',
     el() { return document.getElementById('view'); },
